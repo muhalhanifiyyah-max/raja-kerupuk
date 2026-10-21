@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Raja Kerupuk — Multi-Tenant Accounting POS',
+  title: 'Raja Kerupuk — Sistem Akuntansi & POS',
   description: 'Sistem Pembukuan dan Akuntansi Otomatis Multi-Pabrik Kerupuk dengan Supabase PostgreSQL',
 };
 

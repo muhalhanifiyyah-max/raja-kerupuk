@@ -521,67 +521,67 @@ export default function App() {
     );
   }
 
-  // Login view if not logged in
+  // Login view if not logged in (Light Mode)
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#0f1015] text-slate-100 flex flex-col justify-center items-center p-4">
+      <div className="min-h-screen bg-[#f1f3f6] text-slate-800 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-sm space-y-6">
           
           {/* Logo & Simple Title */}
-          <div className="text-center space-y-2.5">
-            <div className="w-14 h-14 rounded-2xl bg-white p-2 mx-auto shadow-xl flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/90 p-2 mx-auto shadow-sm flex items-center justify-center">
               <img src="/logo.png" alt="Raja Kerupuk" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Raja Kerupuk</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Raja Kerupuk</h1>
           </div>
 
-          {/* Clean Login Box */}
-          <div className="bg-[#181922] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-            <h2 className="text-base font-semibold text-white">Masuk ke Sistem</h2>
+          {/* Clean Light Login Box */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-7 shadow-xl shadow-slate-200/50 space-y-4">
+            <h2 className="text-base font-bold text-slate-900">Masuk ke Sistem</h2>
 
             {loginError && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
                 <span>{loginError}</span>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-3.5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
                   Username atau Email
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     value={loginForm.identifier}
                     onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
                     placeholder="Username atau email"
-                    className="w-full pl-10 pr-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 transition-colors"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-800 focus:bg-white transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                     placeholder="Password"
-                    className="w-full pl-10 pr-10 py-2 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 transition-colors font-mono"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-800 focus:bg-white transition-all font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -589,12 +589,12 @@ export default function App() {
               </div>
 
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-400">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-500">
                   <input
                     type="checkbox"
                     checked={loginForm.rememberMe}
                     onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
-                    className="rounded border-white/20 bg-black/40 text-amber-500 focus:ring-0"
+                    className="rounded border-slate-300 text-slate-900 focus:ring-0"
                   />
                   <span>Ingat saya</span>
                 </label>
@@ -603,7 +603,7 @@ export default function App() {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl text-sm transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
+                className="w-full py-2.5 bg-[#191a23] hover:bg-black text-white font-semibold rounded-xl text-sm transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
               >
                 {loginLoading ? (
                   <>
@@ -617,7 +617,7 @@ export default function App() {
             </form>
           </div>
 
-          <p className="text-center text-xs text-slate-600">
+          <p className="text-center text-xs text-slate-400">
             &copy; {new Date().getFullYear()} Raja Kerupuk
           </p>
         </div>
@@ -658,9 +658,6 @@ export default function App() {
               <div className="flex items-center gap-1.5">
                 <h1 className="font-extrabold text-base tracking-tight text-slate-900">Raja Kerupuk</h1>
               </div>
-              <p className="text-[10px] font-bold tracking-wider uppercase text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded inline-block">
-                Multi-Tenant POS
-              </p>
             </div>
           </div>
 
@@ -919,25 +916,13 @@ export default function App() {
           {/* User Profile & Actions */}
           <div className="flex items-center gap-3">
             {currentUser?.role !== 'pedagang' && (
-              <>
-                {/* Production Live Status Badge */}
-                <div 
-                  title="Sistem Terkoneksi ke Database PostgreSQL Supabase Enterprise (Multi-Tenant)"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/90 rounded-full select-none"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Sistem Live</span>
-                </div>
-
-                {/* Quick Action Menu Button */}
-                <button
-                  onClick={() => setActiveModal('distribusi')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Transaksi Baru</span>
-                </button>
-              </>
+              <button
+                onClick={() => setActiveModal('distribusi')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Transaksi Baru</span>
+              </button>
             )}
 
             {/* Notification bell */}
@@ -1120,74 +1105,91 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-baseline gap-3 mb-6">
-                    <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                      {formatShort(isGlobal ? globalTotals.omset : metrics.penjualan)}
-                    </span>
-                    <span className="text-xs font-semibold text-emerald-600 flex items-center">
-                      <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                      +18.4% vs bln lalu
-                    </span>
-                  </div>
+                  {(() => {
+                    const omsetVal = isGlobal ? globalTotals.omset : metrics.penjualan;
+                    return (
+                      <>
+                        <div className="flex items-baseline gap-3 mb-6">
+                          <span className="text-3xl font-extrabold tracking-tight text-slate-900">
+                            {formatShort(omsetVal)}
+                          </span>
+                          {omsetVal > 0 && (
+                            <span className="text-xs font-semibold text-emerald-600 flex items-center">
+                              <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                              Tren Penjualan Aktif
+                            </span>
+                          )}
+                        </div>
 
-                  {/* SVG Chart Graphic */}
-                  <div className="h-48 w-full relative">
-                    <svg viewBox="0 0 600 180" className="w-full h-full overflow-visible">
-                      <defs>
-                        <linearGradient id="mintGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
+                        {omsetVal === 0 ? (
+                          <div className="h-48 w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center p-6">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
+                              <TrendingUp className="w-5 h-5" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-700">Belum Ada Data Grafik Penjualan</p>
+                            <p className="text-xs text-slate-400 max-w-xs mt-1">Grafik tren penjualan akan terbentuk otomatis setelah transaksi distribusi dicatat.</p>
+                          </div>
+                        ) : (
+                          <div className="h-48 w-full relative">
+                            <svg viewBox="0 0 600 180" className="w-full h-full overflow-visible">
+                              <defs>
+                                <linearGradient id="mintGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                                </linearGradient>
+                              </defs>
 
-                      {/* Vertical bars pattern like reference */}
-                      {Array.from({ length: 30 }).map((_, i) => {
-                        const x = 20 + i * 19;
-                        const height = 40 + Math.sin(i / 3) * 30 + (i * 2.5);
-                        return (
-                          <rect
-                            key={i}
-                            x={x}
-                            y={170 - height}
-                            width="6"
-                            height={height}
-                            rx="3"
-                            fill="#10b981"
-                            opacity={0.12 + (i / 30) * 0.25}
-                          />
-                        );
-                      })}
+                              {/* Vertical bars */}
+                              {Array.from({ length: 30 }).map((_, i) => {
+                                const x = 20 + i * 19;
+                                const height = 40 + Math.sin(i / 3) * 30 + (i * 2.5);
+                                return (
+                                  <rect
+                                    key={i}
+                                    x={x}
+                                    y={170 - height}
+                                    width="6"
+                                    height={height}
+                                    rx="3"
+                                    fill="#10b981"
+                                    opacity={0.12 + (i / 30) * 0.25}
+                                  />
+                                );
+                              })}
 
-                      {/* Smooth Area Path */}
-                      <path
-                        d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40 L 580 170 L 20 170 Z"
-                        fill="url(#mintGrad)"
-                      />
+                              {/* Smooth Area Path */}
+                              <path
+                                d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40 L 580 170 L 20 170 Z"
+                                fill="url(#mintGrad)"
+                              />
 
-                      {/* Line Path */}
-                      <path
-                        d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
+                              {/* Line Path */}
+                              <path
+                                d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40"
+                                fill="none"
+                                stroke="#10b981"
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                              />
 
-                      {/* Interactive Tooltip Pin (Jan-2026) */}
-                      <g transform="translate(320, 92)">
-                        <circle cx="0" cy="0" r="5" fill="#ffffff" stroke="#10b981" strokeWidth="3" />
-                        <g transform="translate(-40, -48)">
-                          <rect width="80" height="34" rx="8" fill="#191a23" />
-                          <text x="40" y="15" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">
-                            Sep-2026
-                          </text>
-                          <text x="40" y="27" textAnchor="middle" fill="#34d399" fontSize="10" fontWeight="bold">
-                            {formatShort(metrics.penjualan || 11200000)}
-                          </text>
-                        </g>
-                      </g>
-                    </svg>
-                  </div>
+                              <g transform="translate(320, 92)">
+                                <circle cx="0" cy="0" r="5" fill="#ffffff" stroke="#10b981" strokeWidth="3" />
+                                <g transform="translate(-40, -48)">
+                                  <rect width="80" height="34" rx="8" fill="#191a23" />
+                                  <text x="40" y="15" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">
+                                    Bulan Ini
+                                  </text>
+                                  <text x="40" y="27" textAnchor="middle" fill="#34d399" fontSize="10" fontWeight="bold">
+                                    {formatShort(omsetVal)}
+                                  </text>
+                                </g>
+                              </g>
+                            </svg>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Middle Right: Completed Accuracy & Radial Gauge (Exact match) */}
