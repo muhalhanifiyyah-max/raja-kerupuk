@@ -465,7 +465,8 @@ export default function App() {
     setSelectedPedagang(pedagang);
     setActiveModal('kartu_piutang');
     try {
-      const res = await fetch(`/api/laporan/kartu-piutang?pabrik_id=${selectedPabrikId}&pedagang_id=${pedagang.id}`);
+      const targetPabrikId = (selectedPabrikId === 'all' && pedagang.pabrik_id) ? pedagang.pabrik_id : selectedPabrikId;
+      const res = await fetch(`/api/laporan/kartu-piutang?pabrik_id=${targetPabrikId}&pedagang_id=${pedagang.id}`);
       const data = await res.json();
       if (data.success) {
         setKartuPiutangData(data.data);
@@ -523,7 +524,9 @@ export default function App() {
   };
 
   // Current active factory name
-  const currentFactory = factories.find(f => String(f.id) === String(selectedPabrikId)) || factories[0];
+  const currentFactory = selectedPabrikId === 'all'
+    ? { id: 'all', nama_pabrik: 'Semua Pabrik (Konsolidasi Global)', lokasi: 'Semua Cabang', status: 'active' }
+    : (factories.find(f => String(f.id) === String(selectedPabrikId)) || factories[0]);
 
   // Loading screen while verifying session
   if (authLoading) {
@@ -786,7 +789,7 @@ export default function App() {
                       setSelectedPabrikId('all');
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                      activeTab === 'factories' || selectedPabrikId === 'all'
+                      activeTab === 'factories'
                         ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                     }`}
@@ -896,23 +899,17 @@ export default function App() {
               <div className="relative">
                 <select
                   value={selectedPabrikId}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedPabrikId(val);
-                    if (val === 'all') {
-                      setActiveTab('factories');
-                    }
-                  }}
+                  onChange={(e) => setSelectedPabrikId(e.target.value)}
                   className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
                     selectedPabrikId === 'all'
                       ? 'bg-[#191a23] dark:bg-emerald-600 text-white border-slate-700 dark:border-emerald-500'
                       : 'bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10'
                   }`}
                 >
-                  <option value="all">🏢 Semua Pabrik (Super Admin)</option>
+                  <option value="all">Semua Pabrik (Konsolidasi Global)</option>
                   {factories.map((f) => (
                     <option key={f.id} value={String(f.id)}>
-                      🏭 {f.nama_pabrik}
+                      {f.nama_pabrik}
                     </option>
                   ))}
                 </select>

@@ -574,8 +574,13 @@ async function getNeraca(pabrikId, asOfDate) {
 
 // 3. Jurnal Umum
 async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {}) {
-  let where = 'WHERE j.pabrik_id = ?';
-  const params = [pabrikId];
+  let where = 'WHERE 1=1';
+  const params = [];
+
+  if (pabrikId && pabrikId !== 'all') {
+    where += ' AND j.pabrik_id = ?';
+    params.push(Number(pabrikId));
+  }
 
   if (startDate && endDate) {
     where += ' AND j.tanggal BETWEEN ? AND ?';
@@ -587,6 +592,8 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
   const rows = await queryAll(`
     SELECT 
       j.id AS jurnal_id,
+      j.pabrik_id,
+      p.nama_pabrik,
       j.tanggal,
       j.nomor_bukti,
       j.tipe_transaksi,
@@ -601,6 +608,7 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
       d.kredit,
       d.catatan
     FROM tabel_jurnal_transaksi j
+    LEFT JOIN tabel_pabrik p ON j.pabrik_id = p.id
     JOIN tabel_jurnal_detail d ON j.id = d.jurnal_id
     JOIN tabel_akun_perkiraan a ON d.akun_id = a.id
     ${where}
@@ -613,6 +621,8 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
     if (!journalsMap.has(r.jurnal_id)) {
       journalsMap.set(r.jurnal_id, {
         id: r.jurnal_id,
+        pabrik_id: r.pabrik_id,
+        nama_pabrik: r.nama_pabrik,
         tanggal: r.tanggal,
         nomor_bukti: r.nomor_bukti,
         tipe_transaksi: r.tipe_transaksi,
@@ -785,6 +795,8 @@ async function getGlobalConsolidation() {
   let globalPersediaan = 0;
   let globalAsetTetap = 0;
   let globalOmset = 0;
+  let globalHPP = 0;
+  let globalBebanOperasional = 0;
   let globalLabaBersih = 0;
 
   for (const p of pabriks) {
@@ -843,6 +855,8 @@ async function getGlobalConsolidation() {
     globalPersediaan += persediaan;
     globalAsetTetap += asetTetap;
     globalOmset += totalPendapatan;
+    globalHPP += totalHPP;
+    globalBebanOperasional += totalBebanOperasional;
     globalLabaBersih += labaBersih;
 
     pabrikSummaries.push({
@@ -869,6 +883,9 @@ async function getGlobalConsolidation() {
       asetTetap: globalAsetTetap,
       totalAset: globalKas + globalPiutang + globalPersediaan + globalAsetTetap,
       omset: globalOmset,
+      hpp: globalHPP,
+      labaKotor: globalOmset - globalHPP,
+      bebanOperasional: globalBebanOperasional,
       labaBersih: globalLabaBersih
     },
     factories: pabrikSummaries
