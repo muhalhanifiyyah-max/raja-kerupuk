@@ -838,8 +838,12 @@ export default function App() {
           {/* User Mini Profile & Logout */}
           <div className="pt-3 border-t border-slate-200/70 dark:border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
-                {currentUser?.nama?.slice(0, 2).toUpperCase() || 'RK'}
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
+                <img 
+                  src="/default-avatar.png" 
+                  alt={currentUser?.nama || 'User'} 
+                  className="w-full h-full object-cover" 
+                />
               </div>
               <div className="truncate">
                 <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
@@ -950,8 +954,12 @@ export default function App() {
 
             {/* User Avatar & Identity */}
             <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-white/10">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-sm shadow-sm ring-2 ring-white dark:ring-[#14151c]">
-                {currentUser?.nama?.slice(0, 2).toUpperCase() || 'RK'}
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm ring-2 ring-white dark:ring-[#14151c] bg-slate-100 dark:bg-white/5">
+                <img 
+                  src="/default-avatar.png" 
+                  alt={currentUser?.nama || 'User'} 
+                  className="w-full h-full object-cover" 
+                />
               </div>
               <div className="hidden md:block">
                 <div className="flex items-center gap-1.5">
@@ -2381,14 +2389,12 @@ export default function App() {
                               <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                                 <td className="py-3.5 pl-2">
                                   <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm ${
-                                      isSuper 
-                                        ? 'bg-[#191a23]' 
-                                        : isAdminPabrik 
-                                        ? 'bg-emerald-600' 
-                                        : 'bg-blue-600'
-                                    }`}>
-                                      {u.nama ? u.nama.slice(0, 2).toUpperCase() : 'US'}
+                                    <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
+                                      <img 
+                                        src="/default-avatar.png" 
+                                        alt={u.nama || 'User'} 
+                                        className="w-full h-full object-cover" 
+                                      />
                                     </div>
                                     <div>
                                       <p className="font-bold text-slate-900 leading-tight">{u.nama}</p>
