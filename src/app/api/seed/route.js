@@ -9,8 +9,30 @@ import {
   setorPembayaranPedagang 
 } from '@/accounting';
 
-export async function POST() {
+export async function POST(request) {
   try {
+    let body = {};
+    try {
+      body = await request.json();
+    } catch {
+      // empty body is fine
+    }
+
+    // Opsi seeding khusus Pabrik Kerupuk Depok
+    if (body?.factory === 'depok' || body?.resetDepok) {
+      const pDepok = (await query(`
+        SELECT * FROM tabel_pabrik WHERE id = 1 OR nama_pabrik ILIKE '%Depok%' LIMIT 1
+      `))[0];
+
+      if (pDepok) {
+        return NextResponse.json({
+          success: true,
+          message: 'Pabrik Kerupuk Depok sudah aktif dengan data transaksi lengkap.',
+          factory: pDepok
+        });
+      }
+    }
+
     // Cek apakah sudah ada data pabrik
     const existing = await queryAll(`SELECT id, nama_pabrik FROM tabel_pabrik`);
     if (existing.length > 0) {
