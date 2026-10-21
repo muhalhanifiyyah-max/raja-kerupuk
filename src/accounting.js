@@ -400,7 +400,13 @@ async function catatBebanOperasional(pabrikId, { namaBeban, nominal, tanggal, ke
 // 1. Laba Rugi (Income Statement)
 async function getLabaRugi(pabrikId, startDate, endDate) {
   let dateFilter = '';
-  const params = [pabrikId];
+  const params = [];
+  let wherePabrik = ' 1=1 ';
+
+  if (pabrikId && pabrikId !== 'all') {
+    wherePabrik = ' a.pabrik_id = ? ';
+    params.push(Number(pabrikId));
+  }
 
   if (startDate && endDate) {
     dateFilter = ' AND j.tanggal BETWEEN ? AND ? ';
@@ -409,7 +415,7 @@ async function getLabaRugi(pabrikId, startDate, endDate) {
 
   const rows = await queryAll(`
     SELECT 
-      a.id,
+      MIN(a.id) as id,
       a.kode_akun,
       a.nama_akun,
       a.tipe_akun,
@@ -419,8 +425,8 @@ async function getLabaRugi(pabrikId, startDate, endDate) {
     FROM tabel_akun_perkiraan a
     LEFT JOIN tabel_jurnal_detail d ON a.id = d.akun_id
     LEFT JOIN tabel_jurnal_transaksi j ON d.jurnal_id = j.id ${dateFilter}
-    WHERE a.pabrik_id = ? AND a.tipe_akun IN ('pendapatan', 'beban')
-    GROUP BY a.id, a.kode_akun, a.nama_akun, a.tipe_akun, a.saldo_normal
+    WHERE ${wherePabrik} AND a.tipe_akun IN ('pendapatan', 'beban')
+    GROUP BY a.kode_akun, a.nama_akun, a.tipe_akun, a.saldo_normal
     ORDER BY a.kode_akun ASC
   `, params);
 
@@ -469,7 +475,13 @@ async function getLabaRugi(pabrikId, startDate, endDate) {
 // 2. Neraca (Balance Sheet)
 async function getNeraca(pabrikId, asOfDate) {
   let dateFilter = '';
-  const params = [pabrikId];
+  const params = [];
+  let wherePabrik = ' 1=1 ';
+
+  if (pabrikId && pabrikId !== 'all') {
+    wherePabrik = ' a.pabrik_id = ? ';
+    params.push(Number(pabrikId));
+  }
 
   if (asOfDate) {
     dateFilter = ' AND j.tanggal <= ? ';
@@ -478,7 +490,7 @@ async function getNeraca(pabrikId, asOfDate) {
 
   const rows = await queryAll(`
     SELECT 
-      a.id,
+      MIN(a.id) as id,
       a.kode_akun,
       a.nama_akun,
       a.tipe_akun,
@@ -488,8 +500,8 @@ async function getNeraca(pabrikId, asOfDate) {
     FROM tabel_akun_perkiraan a
     LEFT JOIN tabel_jurnal_detail d ON a.id = d.akun_id
     LEFT JOIN tabel_jurnal_transaksi j ON d.jurnal_id = j.id ${dateFilter}
-    WHERE a.pabrik_id = ?
-    GROUP BY a.id, a.kode_akun, a.nama_akun, a.tipe_akun, a.saldo_normal
+    WHERE ${wherePabrik}
+    GROUP BY a.kode_akun, a.nama_akun, a.tipe_akun, a.saldo_normal
     ORDER BY a.kode_akun ASC
   `, params);
 

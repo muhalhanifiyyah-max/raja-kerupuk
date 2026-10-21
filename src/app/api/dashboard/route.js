@@ -9,8 +9,10 @@ export async function GET(request) {
 
     // Jika mode Super Admin (pabrik_id=all)
     if (pabrikIdParam === 'all' || !pabrikIdParam) {
-      const [globalData, pedagangList, produkList, recentJournals, monthlySales] = await Promise.all([
+      const [globalData, neraca, labaRugi, pedagangList, produkList, recentJournals, monthlySales] = await Promise.all([
         getGlobalConsolidation(),
+        getNeraca('all'),
+        getLabaRugi('all'),
         queryAll(`
           SELECT 
             ped.id, 
@@ -88,6 +90,8 @@ export async function GET(request) {
         pedagangList,
         produkList,
         recentJournals,
+        neracaSummary: neraca,
+        labaRugiSummary: labaRugi,
         data: globalData
       });
     }
