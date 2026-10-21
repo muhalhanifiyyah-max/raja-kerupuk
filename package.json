@@ -1,0 +1,19 @@
+{
+  "name": "raja-kerupuk-accounting",
+  "version": "1.0.0",
+  "description": "Sistem Pembukuan & Akuntansi Multi-Tenant Pabrik Kerupuk dengan Double-Entry Otomatis & Supabase",
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "lucide-react": "^1.59.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "author": "Raja Kerupuk Team",
+  "license": "MIT"
+}

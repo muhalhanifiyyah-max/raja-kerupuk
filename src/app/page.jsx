@@ -1,0 +1,3766 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Boxes, 
+  ShoppingCart, 
+  Landmark, 
+  Receipt, 
+  Building2, 
+  Search, 
+  Bell, 
+  SlidersHorizontal, 
+  Plus, 
+  ArrowUpRight, 
+  TrendingUp, 
+  Wallet, 
+  AlertCircle, 
+  CheckCircle2, 
+  MoreVertical, 
+  Phone, 
+  ChevronDown, 
+  RefreshCw, 
+  Printer, 
+  Sparkles,
+  Sun,
+  Moon,
+  X,
+  CreditCard,
+  PackagePlus,
+  Coins,
+  Send,
+  ArrowDownLeft,
+  Factory,
+  Users,
+  UserPlus,
+  Edit3,
+  Trash2,
+  Shield,
+  LogOut,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Store,
+  LogIn
+} from 'lucide-react';
+
+export default function App() {
+  const [factories, setFactories] = useState([]);
+  const [selectedPabrikId, setSelectedPabrikId] = useState('1');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [superAdminSubTab, setSuperAdminSubTab] = useState('pabrik'); // 'pabrik' | 'users'
+  const [dashboardData, setDashboardData] = useState(null);
+  const [usersList, setUsersList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedPedagang, setSelectedPedagang] = useState(null);
+  const [kartuPiutangData, setKartuPiutangData] = useState(null);
+  const [chartHoverIndex, setChartHoverIndex] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginForm, setLoginForm] = useState({ identifier: '', password: '', rememberMe: true });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [pedagangPortalData, setPedagangPortalData] = useState(null);
+
+  // Form states
+  const [modalForm, setModalForm] = useState({ nominal: '', tanggal: '', keterangan: '' });
+  const [peralatanForm, setPeralatanForm] = useState({ nama_item: '', harga: '', qty: 1, tanggal: '', keterangan: '' });
+  const [persediaanForm, setPersediaanForm] = useState({ produk_id: '', qty: '', harga_beli: '', tanggal: '', keterangan: '' });
+  const [distribusiForm, setDistribusiForm] = useState({ pedagang_id: '', produk_id: '', qty: '', harga_jual: '', tanggal: '', keterangan: '' });
+  const [setoranForm, setSetoranForm] = useState({ pedagang_id: '', nominal: '', tanggal: '', keterangan: '' });
+  const [pedagangForm, setPedagangForm] = useState({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '' });
+  const [produkForm, setProdukForm] = useState({ nama_produk: '', kategori: 'Kerupuk', satuan: 'Bal', harga_beli: '', harga_jual: '', stok: 0 });
+  const [pabrikForm, setPabrikForm] = useState({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
+  const [editPabrikForm, setEditPabrikForm] = useState({ id: null, nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '' });
+  const [userForm, setUserForm] = useState({ id: null, nama: '', email: '', username: '', password: '', role: 'admin_pabrik', pabrik_id: '1', pedagang_id: '', status: 'aktif' });
+  const [selectedPabrikToDelete, setSelectedPabrikToDelete] = useState(null);
+  const [selectedUserToDelete, setSelectedUserToDelete] = useState(null);
+  const [editTransactionForm, setEditTransactionForm] = useState({ id: null, nomor_bukti: '', tanggal: '', referensi: '', keterangan: '', tipe_transaksi: '', total_nominal: 0 });
+  const [selectedTransactionToDelete, setSelectedTransactionToDelete] = useState(null);
+
+  // Check auth session
+  const checkAuth = async () => {
+    try {
+      setAuthLoading(true);
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        if (data.user.role === 'admin_pabrik' && data.user.pabrik_id) {
+          setSelectedPabrikId(String(data.user.pabrik_id));
+        } else if (data.user.role === 'pedagang') {
+          setActiveTab('pedagang_portal');
+          loadPedagangPortalData(data.user);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    } catch (err) {
+      console.error('Error check auth:', err);
+      setCurrentUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const loadPedagangPortalData = async (user) => {
+    try {
+      const pedId = user?.pedagang_id || 1;
+      const pabId = user?.pabrik_id || 1;
+      const res = await fetch(`/api/laporan/kartu-piutang?pabrik_id=${pabId}&pedagang_id=${pedId}`);
+      const data = await res.json();
+      if (data.success) {
+        setPedagangPortalData(data.data);
+      }
+    } catch (err) {
+      console.error('Error load pedagang portal data:', err);
+    }
+  };
+
+  const handleLogin = async (e, customCredentials = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+
+    const credentials = customCredentials || {
+      identifier: loginForm.identifier,
+      password: loginForm.password
+    };
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      const data = await res.json();
+
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        showToast(`Login berhasil! Selamat datang, ${data.user.nama}`);
+        if (data.user.role === 'admin_pabrik' && data.user.pabrik_id) {
+          setSelectedPabrikId(String(data.user.pabrik_id));
+          setActiveTab('dashboard');
+        } else if (data.user.role === 'pedagang') {
+          setActiveTab('pedagang_portal');
+          loadPedagangPortalData(data.user);
+        } else {
+          setActiveTab('dashboard');
+        }
+      } else {
+        setLoginError(data.error || 'Login gagal. Periksa username dan password Anda.');
+      }
+    } catch (err) {
+      setLoginError('Gagal menghubungi server. Silakan coba beberapa saat lagi.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleQuickLogin = (identifier, password) => {
+    setLoginForm({ identifier, password, rememberMe: true });
+    handleLogin(null, { identifier, password });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setCurrentUser(null);
+      setLoginForm({ identifier: '', password: '', rememberMe: true });
+      showToast('Anda telah berhasil keluar dari sistem');
+    }
+  };
+
+  // Fetch factories list
+  const loadFactories = async () => {
+    try {
+      const res = await fetch('/api/pabrik');
+      const data = await res.json();
+      if (data.success && data.data.length > 0) {
+        setFactories(data.data);
+        if (!selectedPabrikId && data.data[0]) {
+          setSelectedPabrikId(String(data.data[0].id));
+        }
+      }
+    } catch (err) {
+      console.error('Error load factories:', err);
+    }
+  };
+
+  // Fetch dashboard data
+  const loadDashboard = async (pabrikId) => {
+    setLoading(true);
+    try {
+      const idToFetch = pabrikId || selectedPabrikId || '1';
+      const res = await fetch(`/api/dashboard?pabrik_id=${idToFetch}`);
+      const data = await res.json();
+      if (data.success) {
+        setDashboardData(data);
+      }
+    } catch (err) {
+      console.error('Error load dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch users list (Super Admin)
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      if (data.success) {
+        setUsersList(data.data);
+      }
+    } catch (err) {
+      console.error('Error load users:', err);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+    loadFactories();
+    loadUsers();
+  }, []);
+
+  useEffect(() => {
+    if (selectedPabrikId) {
+      loadDashboard(selectedPabrikId);
+    }
+  }, [selectedPabrikId]);
+
+  const showToast = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4500);
+  };
+
+  // Factory CRUD Handlers
+  const handleUpdatePabrik = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/pabrik/${editPabrikForm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editPabrikForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Pabrik "${editPabrikForm.nama_pabrik}" berhasil diperbarui!`);
+        setActiveModal(null);
+        await loadFactories();
+        await loadDashboard(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Gagal update pabrik', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleDeletePabrik = async () => {
+    if (!selectedPabrikToDelete) return;
+    try {
+      const res = await fetch(`/api/pabrik/${selectedPabrikToDelete.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Pabrik berhasil dihapus!');
+        setActiveModal(null);
+        setSelectedPabrikToDelete(null);
+        await loadFactories();
+        setSelectedPabrikId('all');
+        setActiveTab('factories');
+        await loadDashboard('all');
+      } else {
+        showToast(data.error || 'Gagal hapus pabrik', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // User CRUD Handlers
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    try {
+      const isEdit = Boolean(userForm.id);
+      const url = isEdit ? `/api/users/${userForm.id}` : '/api/users';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(isEdit ? 'Pengguna berhasil diperbarui!' : 'Pengguna baru berhasil ditambahkan!');
+        setActiveModal(null);
+        await loadUsers();
+      } else {
+        showToast(data.error || 'Gagal menyimpan pengguna', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUserToDelete) return;
+    try {
+      const res = await fetch(`/api/users/${selectedUserToDelete.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Pengguna berhasil dihapus!');
+        setActiveModal(null);
+        setSelectedUserToDelete(null);
+        await loadUsers();
+      } else {
+        showToast(data.error || 'Gagal menghapus pengguna', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+ 
+  // Transaction Edit & Delete Handlers
+  const openEditTransaction = (journal) => {
+    setEditTransactionForm({
+      id: journal.id,
+      nomor_bukti: journal.nomor_bukti,
+      tanggal: journal.tanggal ? journal.tanggal.slice(0, 10) : '',
+      referensi: journal.referensi || '',
+      keterangan: journal.keterangan || '',
+      tipe_transaksi: journal.tipe_transaksi || '',
+      total_nominal: journal.total_nominal || 0
+    });
+    setActiveModal('edit_transaksi');
+  };
+
+  const handleUpdateTransaction = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/transaksi/${editTransactionForm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editTransactionForm,
+          pabrik_id: selectedPabrikId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Transaksi berhasil diperbarui!');
+        setActiveModal(null);
+        await loadDashboard(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Gagal memperbarui transaksi', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const openDeleteTransaction = (journal) => {
+    setSelectedTransactionToDelete(journal);
+    setActiveModal('delete_transaksi_confirm');
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!selectedTransactionToDelete) return;
+    try {
+      const res = await fetch(`/api/transaksi/${selectedTransactionToDelete.id}?pabrik_id=${selectedPabrikId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Transaksi berhasil dihapus & saldo dipulihkan!');
+        setActiveModal(null);
+        setSelectedTransactionToDelete(null);
+        await loadDashboard(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Gagal menghapus transaksi', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Quick seed trigger
+  const handleSeedData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/seed', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Data pabrik & transaksi demo berhasil dimuat!');
+        await loadFactories();
+        await loadDashboard(selectedPabrikId || '1');
+      } else {
+        showToast(data.error || 'Gagal memuat demo', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generic Submit Transaction
+  const handleTransactionSubmit = async (endpoint, payload, successMsg) => {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, pabrik_id: selectedPabrikId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(successMsg);
+        setActiveModal(null);
+        await loadDashboard(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Transaksi gagal', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Load Kartu Piutang
+  const viewKartuPiutang = async (pedagang) => {
+    setSelectedPedagang(pedagang);
+    setActiveModal('kartu_piutang');
+    try {
+      const res = await fetch(`/api/laporan/kartu-piutang?pabrik_id=${selectedPabrikId}&pedagang_id=${pedagang.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setKartuPiutangData(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Format currency IDR
+  const formatIDR = (val) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
+    }).format(Number(val) || 0);
+  };
+
+  // Format short currency
+  const formatShort = (val) => {
+    const n = Number(val) || 0;
+    if (Math.abs(n) >= 1_000_000_000) {
+      return (n / 1_000_000_000).toFixed(2) + ' M';
+    }
+    if (Math.abs(n) >= 1_000_000) {
+      return (n / 1_000_000).toFixed(1) + ' jt';
+    }
+    if (Math.abs(n) >= 1_000) {
+      return (n / 1_000).toFixed(0) + ' rb';
+    }
+    return n.toLocaleString('id-ID');
+  };
+
+  const isGlobal = dashboardData?.isGlobal;
+  const metrics = dashboardData?.metrics || {
+    kas: 0,
+    piutang: 0,
+    persediaan: 0,
+    peralatan: 0,
+    totalAset: 0,
+    penjualan: 0,
+    labaBersih: 0,
+    isBalanced: true,
+    accuracyScore: 100
+  };
+
+  const globalTotals = dashboardData?.data?.totals || {
+    kas: 0,
+    piutang: 0,
+    persediaan: 0,
+    asetTetap: 0,
+    totalAset: 0,
+    omset: 0,
+    labaBersih: 0
+  };
+
+  // Current active factory name
+  const currentFactory = factories.find(f => String(f.id) === String(selectedPabrikId)) || factories[0];
+
+  // Loading screen while verifying session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f1f3f6] flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 rounded-3xl bg-[#191a23] p-3 shadow-2xl flex items-center justify-center border border-slate-700/50 animate-pulse">
+          <img src="/logo.png" alt="Raja Kerupuk" className="w-full h-full object-contain" />
+        </div>
+        <h3 className="mt-4 font-extrabold text-slate-800 text-base tracking-wide">Raja Kerupuk OS</h3>
+        <p className="text-xs text-slate-400 mt-1">Memverifikasi sesi akuntansi...</p>
+      </div>
+    );
+  }
+
+  // Login view if not logged in
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#0f1015] text-slate-100 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-sm space-y-6">
+          
+          {/* Logo & Simple Title */}
+          <div className="text-center space-y-2.5">
+            <div className="w-14 h-14 rounded-2xl bg-white p-2 mx-auto shadow-xl flex items-center justify-center">
+              <img src="/logo.png" alt="Raja Kerupuk" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Raja Kerupuk</h1>
+          </div>
+
+          {/* Clean Login Box */}
+          <div className="bg-[#181922] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+            <h2 className="text-base font-semibold text-white">Masuk ke Sistem</h2>
+
+            {loginError && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">
+                  Username atau Email
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={loginForm.identifier}
+                    onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
+                    placeholder="Username atau email"
+                    className="w-full pl-10 pr-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                    placeholder="Password"
+                    className="w-full pl-10 pr-10 py-2 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 transition-colors font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={loginForm.rememberMe}
+                    onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
+                    className="rounded border-white/20 bg-black/40 text-amber-500 focus:ring-0"
+                  />
+                  <span>Ingat saya</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl text-sm transition-all shadow-md active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
+              >
+                {loginLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Masuk</span>
+                )}
+              </button>
+            </form>
+          </div>
+
+          <p className="text-center text-xs text-slate-600">
+            &copy; {new Date().getFullYear()} Raja Kerupuk
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen flex ${darkMode ? 'bg-[#0f1015] text-[#f1f3f6]' : 'bg-[#f1f3f6] text-[#191a23]'}`}>
+      
+      {/* Toast Notification */}
+      {notification && (
+        <div className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border ${
+          notification.type === 'error' 
+            ? 'bg-rose-900/90 text-white border-rose-700' 
+            : 'bg-[#191a23] text-white border-emerald-500/50'
+        }`}>
+          {notification.type === 'error' ? (
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          )}
+          <span className="text-sm font-medium">{notification.message}</span>
+        </div>
+      )}
+
+      {/* LEFT SIDEBAR */}
+      <aside className={`w-64 p-5 flex flex-col justify-between shrink-0 border-r ${
+        darkMode ? 'bg-[#14151c] border-white/5' : 'bg-white border-slate-200/70'
+      }`}>
+        <div className="space-y-6">
+          {/* Logo & Brand Header */}
+          <div className="flex items-center gap-3 px-2 pt-1">
+            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+              <img src="/logo.png" alt="Raja Kerupuk Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-extrabold text-base tracking-tight text-slate-900">Raja Kerupuk</h1>
+              </div>
+              <p className="text-[10px] font-bold tracking-wider uppercase text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded inline-block">
+                Multi-Tenant POS
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Menu (Role-based) */}
+          <nav className="space-y-1.5">
+            {currentUser?.role === 'pedagang' ? (
+              <>
+                <button
+                  onClick={() => setActiveTab('pedagang_portal')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'pedagang_portal'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Portal Hutang & Setoran</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('inventory')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'inventory'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <Boxes className="w-4 h-4" />
+                  <span>Katalog Produk Pabrik</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'dashboard'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('sales')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'sales'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Distribusi & Piutang</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('inventory')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'inventory'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <Boxes className="w-4 h-4" />
+                  <span>Persediaan Stok</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('purchases')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'purchases'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Peralatan & Aset</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('banking')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'banking'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <Landmark className="w-4 h-4" />
+                  <span>Kas & Perbankan</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('finance')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'finance'
+                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                  }`}
+                >
+                  <Receipt className="w-4 h-4" />
+                  <span>Laporan Keuangan</span>
+                </button>
+
+                {currentUser?.role === 'super_admin' && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('factories');
+                      setSelectedPabrikId('all');
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                      activeTab === 'factories' || selectedPabrikId === 'all'
+                        ? 'bg-[#191a23] text-white rounded-full shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>Super Admin Pabrik</span>
+                  </button>
+                )}
+              </>
+            )}
+          </nav>
+        </div>
+
+        {/* Bottom Card & Controls */}
+        <div className="space-y-4">
+          {/* Quick Action Button */}
+          {currentUser?.role !== 'pedagang' && (
+            <button
+              onClick={() => setActiveModal('distribusi')}
+              className="w-full py-2.5 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Catat Distribusi</span>
+            </button>
+          )}
+
+          {/* Theme Mode Toggle Pill */}
+          <div className="bg-slate-100 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600">
+            <button
+              onClick={() => setDarkMode(false)}
+              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
+                !darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              Light
+            </button>
+            <button
+              onClick={() => setDarkMode(true)}
+              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
+                darkMode ? 'bg-[#191a23] text-white shadow-sm font-semibold' : 'text-slate-400'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              Dark
+            </button>
+          </div>
+
+          {/* User Mini Profile & Logout */}
+          <div className="pt-3 border-t border-slate-200/70 dark:border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+                {currentUser?.nama?.slice(0, 2).toUpperCase() || 'RK'}
+              </div>
+              <div className="truncate">
+                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                  {currentUser?.nama}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate">
+                  @{currentUser?.username} • {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Pedagang'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Keluar dari sistem"
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTAINER */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+        
+        {/* TOP NAVBAR */}
+        <header className={`px-8 py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${
+          darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
+        }`}>
+          {/* Search Bar & Factory Selector */}
+          <div className="flex items-center gap-4 flex-1 max-w-xl">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari transaksi, pedagang, jurnal... (⌘ + Space)"
+                className={`w-full pl-10 pr-24 py-2 text-sm rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                  darkMode 
+                    ? 'bg-[#1a1b24] border-white/10 text-white placeholder-slate-500' 
+                    : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-sm'
+                }`}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] text-slate-500 font-mono">
+                <span>⌘</span>
+                <span>Space</span>
+              </div>
+            </div>
+
+            {/* Multi-Tenant Switcher (Scoped by Role) */}
+            {currentUser?.role === 'super_admin' ? (
+              <div className="relative">
+                <select
+                  value={selectedPabrikId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedPabrikId(val);
+                    if (val === 'all') {
+                      setActiveTab('factories');
+                    }
+                  }}
+                  className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
+                    selectedPabrikId === 'all'
+                      ? 'bg-[#191a23] text-white border-slate-700'
+                      : 'bg-white text-slate-800 border-slate-200'
+                  }`}
+                >
+                  <option value="all">🏢 Semua Pabrik (Super Admin)</option>
+                  {factories.map((f) => (
+                    <option key={f.id} value={String(f.id)}>
+                      🏭 {f.nama_pabrik}
+                    </option>
+                  ))}
+                </select>
+                <Factory className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500'
+                }`} />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            ) : currentUser?.role === 'admin_pabrik' ? (
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-xs font-bold shadow-sm">
+                <Factory className="w-4 h-4 text-emerald-600" />
+                <span>🏭 {currentUser.nama_pabrik || currentFactory?.nama_pabrik}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full text-xs font-bold shadow-sm">
+                <Store className="w-4 h-4 text-amber-600" />
+                <span>🛒 {currentUser?.nama_pedagang || currentUser?.nama}</span>
+              </div>
+            )}
+          </div>
+
+          {/* User Profile & Actions */}
+          <div className="flex items-center gap-3">
+            {currentUser?.role !== 'pedagang' && (
+              <>
+                {/* Production Live Status Badge */}
+                <div 
+                  title="Sistem Terkoneksi ke Database PostgreSQL Supabase Enterprise (Multi-Tenant)"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/90 rounded-full select-none"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Sistem Live</span>
+                </div>
+
+                {/* Quick Action Menu Button */}
+                <button
+                  onClick={() => setActiveModal('distribusi')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Transaksi Baru</span>
+                </button>
+              </>
+            )}
+
+            {/* Notification bell */}
+            <button className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-sm relative">
+              <Bell className="w-4 h-4" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
+            </button>
+
+            {/* User Avatar & Identity */}
+            <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-sm shadow-sm ring-2 ring-white">
+                {currentUser?.nama?.slice(0, 2).toUpperCase() || 'RK'}
+              </div>
+              <div className="hidden md:block">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-slate-800 leading-tight">
+                    {currentUser?.nama}
+                  </p>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Mitra'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-tight">
+                  {currentUser?.role === 'super_admin' ? 'Pemilik Sistem' : currentUser?.nama_pabrik || 'Pabrik'}
+                </p>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                title="Keluar dari sistem"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-full hover:bg-rose-100 hover:text-rose-700 transition-all active:scale-95 shadow-sm ml-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* CONTENT BODY */}
+        <main className="p-8 space-y-6 flex-1">
+          
+          {/* TAB: DASHBOARD VIEW */}
+          {activeTab === 'dashboard' && (
+            <>
+              {/* TOP 4 KPI CARDS (Matching Shopify POS Layout) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* 1. Kas & Bank */}
+                <div className="dashboard-card p-5 relative overflow-hidden group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Kas (Aset Lancar)</span>
+                    </div>
+                    <button 
+                      onClick={() => setActiveModal('modal_awal')}
+                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                      title="Tambah Modal Kas"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">
+                    {formatShort(isGlobal ? globalTotals.kas : metrics.kas)}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>{formatIDR(isGlobal ? globalTotals.kas : metrics.kas)}</span>
+                    <span className="text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+                      Likuid
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Piutang Pedagang */}
+                <div className="dashboard-card p-5 relative overflow-hidden group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-500">
+                        <div className="w-2 h-2 rounded-full bg-rose-500" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Piutang Pedagang</span>
+                    </div>
+                    <button 
+                      onClick={() => setActiveModal('setoran')}
+                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                      title="Catat Setoran Pembayaran"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">
+                    {formatShort(isGlobal ? globalTotals.piutang : metrics.piutang)}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>{formatIDR(isGlobal ? globalTotals.piutang : metrics.piutang)}</span>
+                    <span className="text-rose-500 font-semibold bg-rose-50 px-2 py-0.5 rounded-full">
+                      Tagihan
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Persediaan Stok Gudang */}
+                <div className="dashboard-card p-5 relative overflow-hidden group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Persediaan Barang</span>
+                    </div>
+                    <button 
+                      onClick={() => setActiveModal('beli_persediaan')}
+                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                      title="Belanja Persediaan Baru"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">
+                    {formatShort(isGlobal ? globalTotals.persediaan : metrics.persediaan)}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>{formatIDR(isGlobal ? globalTotals.persediaan : metrics.persediaan)}</span>
+                    <span className="text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
+                      Gudang
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Laba Bersih Berjalan */}
+                <div className="dashboard-card p-5 relative overflow-hidden group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-600">
+                        <div className="w-2 h-2 rounded-full bg-purple-600" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Laba Bersih</span>
+                    </div>
+                    <button 
+                      onClick={() => setActiveTab('finance')}
+                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                      title="Lihat Laporan Laba Rugi"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-2xl font-extrabold tracking-tight text-emerald-600 mb-1">
+                    {formatShort(isGlobal ? globalTotals.labaBersih : metrics.labaBersih)}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>{formatIDR(isGlobal ? globalTotals.labaBersih : metrics.labaBersih)}</span>
+                    <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+                      Laba Periode
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* MIDDLE ROW: CHART & GAUGE ACCURACY (Exact reference match) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Middle Left: Overview Area Chart (2 Cols) */}
+                <div className="dashboard-card p-6 lg:col-span-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-bold text-base text-slate-900">Overview Penjualan & Omset</h3>
+                      <p className="text-xs text-slate-400">Tren penjualan distribusi ke pedagang</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 focus:outline-none shadow-sm cursor-pointer">
+                        <option>Bulan Ini</option>
+                        <option>Kuartal Ini</option>
+                        <option>Tahun 2026</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-baseline gap-3 mb-6">
+                    <span className="text-3xl font-extrabold tracking-tight text-slate-900">
+                      {formatShort(isGlobal ? globalTotals.omset : metrics.penjualan)}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-600 flex items-center">
+                      <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                      +18.4% vs bln lalu
+                    </span>
+                  </div>
+
+                  {/* SVG Chart Graphic */}
+                  <div className="h-48 w-full relative">
+                    <svg viewBox="0 0 600 180" className="w-full h-full overflow-visible">
+                      <defs>
+                        <linearGradient id="mintGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Vertical bars pattern like reference */}
+                      {Array.from({ length: 30 }).map((_, i) => {
+                        const x = 20 + i * 19;
+                        const height = 40 + Math.sin(i / 3) * 30 + (i * 2.5);
+                        return (
+                          <rect
+                            key={i}
+                            x={x}
+                            y={170 - height}
+                            width="6"
+                            height={height}
+                            rx="3"
+                            fill="#10b981"
+                            opacity={0.12 + (i / 30) * 0.25}
+                          />
+                        );
+                      })}
+
+                      {/* Smooth Area Path */}
+                      <path
+                        d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40 L 580 170 L 20 170 Z"
+                        fill="url(#mintGrad)"
+                      />
+
+                      {/* Line Path */}
+                      <path
+                        d="M 20 140 Q 150 150 250 110 T 450 70 T 580 40"
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Interactive Tooltip Pin (Jan-2026) */}
+                      <g transform="translate(320, 92)">
+                        <circle cx="0" cy="0" r="5" fill="#ffffff" stroke="#10b981" strokeWidth="3" />
+                        <g transform="translate(-40, -48)">
+                          <rect width="80" height="34" rx="8" fill="#191a23" />
+                          <text x="40" y="15" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">
+                            Sep-2026
+                          </text>
+                          <text x="40" y="27" textAnchor="middle" fill="#34d399" fontSize="10" fontWeight="bold">
+                            {formatShort(metrics.penjualan || 11200000)}
+                          </text>
+                        </g>
+                      </g>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Middle Right: Completed Accuracy & Radial Gauge (Exact match) */}
+                <div className="dashboard-card p-6 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-base text-slate-900">Keseimbangan Neraca</h3>
+                    <button className="text-slate-400 hover:text-slate-700">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Top composition badges */}
+                  <div className="grid grid-cols-3 gap-2 py-2">
+                    <div className="bg-slate-50 p-2 rounded-xl text-center">
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Kas
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">
+                        {metrics.totalAset > 0 ? Math.round((metrics.kas / metrics.totalAset) * 100) : 0}%
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 p-2 rounded-xl text-center">
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        Piutang
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">
+                        {metrics.totalAset > 0 ? Math.round((metrics.piutang / metrics.totalAset) * 100) : 0}%
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 p-2 rounded-xl text-center">
+                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Persediaan
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">
+                        {metrics.totalAset > 0 ? Math.round((metrics.persediaan / metrics.totalAset) * 100) : 0}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Semi-circular gauge meter */}
+                  <div className="relative flex flex-col items-center justify-center py-4">
+                    <svg viewBox="0 0 200 120" className="w-48 overflow-visible">
+                      {/* Radial colored ticks radiating like the reference */}
+                      {Array.from({ length: 35 }).map((_, i) => {
+                        const angle = Math.PI + (i / 34) * Math.PI;
+                        const r1 = 70;
+                        const r2 = 82;
+                        const x1 = 100 + r1 * Math.cos(angle);
+                        const y1 = 105 + r1 * Math.sin(angle);
+                        const x2 = 100 + r2 * Math.cos(angle);
+                        const y2 = 105 + r2 * Math.sin(angle);
+                        
+                        let color = '#10b981';
+                        if (i < 8) color = '#f43f5e';
+                        else if (i < 15) color = '#fbbf24';
+                        else if (i < 24) color = '#34d399';
+
+                        return (
+                          <line
+                            key={i}
+                            x1={x1}
+                            y1={y1}
+                            x2={x2}
+                            y2={y2}
+                            stroke={color}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            opacity={0.8}
+                          />
+                        );
+                      })}
+
+                      {/* Inner Arc */}
+                      <path
+                        d="M 30 105 A 70 70 0 0 1 170 105"
+                        fill="none"
+                        stroke="#e2e8f0"
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 30 105 A 70 70 0 0 1 170 105"
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="5"
+                        strokeDasharray="220"
+                        strokeDashoffset="0"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+
+                    <div className="text-center mt-[-40px]">
+                      <p className="text-[11px] font-semibold text-slate-400">Completed Accuracy</p>
+                      <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                        {metrics.isBalanced ? '100.0%' : '92.4%'}
+                      </h2>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Debit = Kredit Seimbang
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* BOTTOM SECTION: MITRA PEDAGANG & KONTROL PIUTANG */}
+              <div className="dashboard-card p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900">Customer Contacts / Mitra Pedagang</h3>
+                    <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per pedagang</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setActiveModal('tambah_pedagang')}
+                      className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-all flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Tambah Pedagang
+                    </button>
+                    <button className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-slate-50 transition-all flex items-center gap-1.5">
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      Filters
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3 pl-2">Nama Pedagang</th>
+                        <th className="pb-3">No. Telepon</th>
+                        <th className="pb-3">Alamat / Wilayah</th>
+                        <th className="pb-3">Sisa Piutang / Limit</th>
+                        <th className="pb-3">Status</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100/70">
+                      {(dashboardData?.pedagangList || []).map((p, idx) => {
+                        const avatarColors = [
+                          'from-emerald-400 to-teal-500',
+                          'from-blue-400 to-indigo-500',
+                          'from-purple-400 to-pink-500',
+                          'from-amber-400 to-orange-500'
+                        ];
+                        const bgGrad = avatarColors[idx % avatarColors.length];
+                        const saldo = Number(p.saldo_piutang) || 0;
+                        const limit = Number(p.limit_piutang) || 0;
+                        const persenLimit = limit > 0 ? Math.round((saldo / limit) * 100) : 0;
+
+                        return (
+                          <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
+                            <td className="py-3.5 pl-2">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${bgGrad} text-white flex items-center justify-center font-bold text-xs shadow-sm`}>
+                                  {p.nama_pedagang.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-slate-900 leading-tight">{p.nama_pedagang}</p>
+                                  <p className="text-[11px] text-slate-400">ID: PED-{p.id}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 text-slate-600 text-xs">
+                              <span className="font-mono">{p.no_telepon || '-'}</span>
+                            </td>
+                            <td className="py-3.5 text-slate-500 text-xs max-w-xs truncate">
+                              {p.alamat || 'Pasar Tradisional'}
+                            </td>
+                            <td className="py-3.5">
+                              <div>
+                                <span className="font-bold text-slate-900 text-xs">
+                                  {formatIDR(saldo)}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block">
+                                  Limit: {formatShort(limit)} ({persenLimit}%)
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                                p.status_piutang === 'Over Limit'
+                                  ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                  : p.status_piutang === 'Mendekati Limit'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : p.status_piutang === 'Lunas'
+                                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}>
+                                {p.status_piutang}
+                              </span>
+                            </td>
+                            <td className="py-3.5 text-right pr-2">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => viewKartuPiutang(p)}
+                                  className="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all"
+                                >
+                                  Kartu Piutang
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSetoranForm(prev => ({ ...prev, pedagang_id: String(p.id) }));
+                                    setActiveModal('setoran');
+                                  }}
+                                  className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all shadow-sm"
+                                >
+                                  Setor
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* RIWAYAT TRANSAKSI & PEMBUKUAN UMUM */}
+              <div className="dashboard-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900">Riwayat Transaksi & Pembukuan</h3>
+                    <p className="text-xs text-slate-400">Jurnal umum akuntansi dengan fitur edit dan hapus transaksi</p>
+                  </div>
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600">
+                    {(dashboardData?.recentJournals || []).length} Transaksi Tercatat
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3 pl-2">Tanggal & No. Bukti</th>
+                        <th className="pb-3">Tipe Transaksi</th>
+                        <th className="pb-3">Keterangan / Referensi</th>
+                        <th className="pb-3">Jurnal Double-Entry</th>
+                        <th className="pb-3 text-right">Total Nominal</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.length === 0) ? (
+                        <tr>
+                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
+                            Belum ada transaksi tercatat pada pabrik ini
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboardData.recentJournals.map((j) => (
+                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 pl-2">
+                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                {j.tipe_transaksi}
+                              </span>
+                            </td>
+                            <td className="py-3">
+                              <span className="font-semibold text-slate-800 text-xs block">{j.referensi || '-'}</span>
+                              <span className="text-[11px] text-slate-500">{j.keterangan}</span>
+                            </td>
+                            <td className="py-3">
+                              <div className="space-y-0.5 text-[10px]">
+                                {j.details?.slice(0, 3).map((d, didx) => (
+                                  <div key={didx} className="flex items-center gap-1.5">
+                                    <span className={`px-1 py-0.2 rounded font-mono font-bold ${
+                                      d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                    }`}>
+                                      {d.debit > 0 ? 'D' : 'K'}
+                                    </span>
+                                    <span className="text-slate-600 truncate max-w-[120px]">{d.nama_akun}</span>
+                                    <span className="font-mono text-slate-800 font-medium">
+                                      {formatIDR(d.debit > 0 ? d.debit : d.kredit)}
+                                    </span>
+                                  </div>
+                                ))}
+                                {j.details?.length > 3 && (
+                                  <span className="text-slate-400 text-[9px]">+{j.details.length - 3} akun lainnya</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 text-right font-extrabold text-slate-900 text-xs">
+                              {formatIDR(j.total_nominal)}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditTransaction(j)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => openDeleteTransaction(j)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </>
+          )}
+
+          {/* TAB: DISTRIBUSI & PIUTANG */}
+          {activeTab === 'sales' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Distribusi & Piutang</h2>
+                </div>
+                <button
+                  onClick={() => setActiveModal('distribusi')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Drop Barang ke Pedagang
+                </button>
+              </div>
+
+              {/* Jurnal Transaksi Distribusi List */}
+              <div className="dashboard-card p-6">
+                <h3 className="font-bold text-sm text-slate-900 mb-4">Riwayat Distribusi Terbaru</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3">Tanggal & No. Bukti</th>
+                        <th className="pb-3">Tipe & Keterangan</th>
+                        <th className="pb-3">Dampak Double-Entry Jurnal</th>
+                        <th className="pb-3 text-right">Total Transaksi</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'DISTRIBUSI_PENJUALAN').length === 0) ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                            Belum ada riwayat distribusi tercatat
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'DISTRIBUSI_PENJUALAN').map((j) => (
+                        <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3">
+                            <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                            <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                          </td>
+                          <td className="py-3">
+                            <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
+                            <span className="text-[11px] text-slate-500">{j.keterangan}</span>
+                          </td>
+                          <td className="py-3">
+                            <div className="space-y-1 text-[11px]">
+                              {j.details.map((d, didx) => (
+                                <div key={didx} className="flex items-center gap-2">
+                                  <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold ${
+                                    d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                  }`}>
+                                    {d.debit > 0 ? 'DEBIT' : 'KREDIT'}
+                                  </span>
+                                  <span className="text-slate-600">{d.nama_akun}</span>
+                                  <span className="font-mono text-slate-800 font-semibold">
+                                    {formatIDR(d.debit > 0 ? d.debit : d.kredit)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 text-right font-extrabold text-slate-900 text-sm">
+                            {formatIDR(j.total_nominal)}
+                          </td>
+                          <td className="py-3 text-right pr-2">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openEditTransaction(j)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                title="Edit Transaksi"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => openDeleteTransaction(j)}
+                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                title="Hapus Transaksi"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PERSEDIAAN STOK */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Persediaan Barang</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveModal('beli_persediaan')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Belanja Stok Baru
+                  </button>
+                  <button
+                    onClick={() => setActiveModal('tambah_produk')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                  >
+                    <PackagePlus className="w-3.5 h-3.5" />
+                    Tambah Produk Baru
+                  </button>
+                </div>
+              </div>
+
+              {/* Produk Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {(dashboardData?.produkList || []).map((prod) => {
+                  const stok = Number(prod.stok) || 0;
+                  const hargaBeli = Number(prod.harga_beli) || 0;
+                  const hargaJual = Number(prod.harga_jual) || 0;
+                  const nilaiAsetPersediaan = stok * hargaBeli;
+                  const margin = hargaJual > 0 ? Math.round(((hargaJual - hargaBeli) / hargaJual) * 100) : 0;
+
+                  return (
+                    <div key={prod.id} className="dashboard-card p-5 relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                          {prod.kategori || 'Kerupuk'}
+                        </span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          stok > 50 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-600'
+                        }`}>
+                          Stok: {stok} {prod.satuan}
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-base text-slate-900 mb-1">{prod.nama_produk}</h4>
+                      <div className="space-y-1.5 my-3 text-xs border-y border-slate-100 py-3">
+                        <div className="flex justify-between text-slate-500">
+                          <span>Harga Beli (HPP):</span>
+                          <span className="font-semibold text-slate-800">{formatIDR(hargaBeli)} / {prod.satuan}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span>Harga Jual:</span>
+                          <span className="font-bold text-emerald-600">{formatIDR(hargaJual)} / {prod.satuan}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span>Estimasi Margin:</span>
+                          <span className="font-bold text-slate-800">{margin}%</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className="text-slate-400">Total Nilai Stok:</span>
+                        <span className="font-extrabold text-slate-900">{formatIDR(nilaiAsetPersediaan)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Jurnal Transaksi Pembelian Persediaan */}
+              <div className="dashboard-card p-6">
+                <h3 className="font-bold text-sm text-slate-900 mb-4">Riwayat Pembelian Persediaan (Stok)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3">Tanggal & No. Bukti</th>
+                        <th className="pb-3">Nama Produk / Item</th>
+                        <th className="pb-3">Keterangan</th>
+                        <th className="pb-3 text-right">Nilai Pembelian</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERSEDIAAN').length === 0) ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                            Belum ada riwayat pembelian persediaan tercatat
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERSEDIAAN').map((j) => (
+                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3">
+                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3 font-semibold text-slate-800 text-xs">
+                              {j.referensi || '-'}
+                            </td>
+                            <td className="py-3 text-xs text-slate-600">
+                              {j.keterangan}
+                            </td>
+                            <td className="py-3 text-right font-extrabold text-slate-900 text-sm">
+                              {formatIDR(j.total_nominal)}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditTransaction(j)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => openDeleteTransaction(j)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PERALATAN & PEMBELIAN */}
+          {activeTab === 'purchases' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Peralatan & Aset</h2>
+                </div>
+                <button
+                  onClick={() => setActiveModal('beli_peralatan')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Beli Peralatan Baru
+                </button>
+              </div>
+
+              <div className="dashboard-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm text-slate-900">Daftar Peralatan & Mesin yang Dimiliki</h3>
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                    Total Aset Tetap: {formatIDR(metrics.peralatan)}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3">Tanggal Bukti</th>
+                        <th className="pb-3">Nama Peralatan / Mesin</th>
+                        <th className="pb-3">Jurnal Akuntansi</th>
+                        <th className="pb-3 text-right">Nilai Perolehan</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERALATAN').length === 0) ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                            Belum ada riwayat pembelian peralatan tercatat
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERALATAN').map((j) => (
+                        <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3">
+                            <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                            <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                          </td>
+                          <td className="py-3">
+                            <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
+                            <span className="text-[11px] text-slate-500">{j.keterangan}</span>
+                          </td>
+                          <td className="py-3 text-xs">
+                            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono text-[11px]">
+                              Debit: Peralatan & Mesin (1501) | Kredit: Kas (1001)
+                            </span>
+                          </td>
+                          <td className="py-3 text-right font-extrabold text-slate-900">
+                            {formatIDR(j.total_nominal)}
+                          </td>
+                          <td className="py-3 text-right pr-2">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openEditTransaction(j)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                title="Edit Transaksi"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => openDeleteTransaction(j)}
+                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                title="Hapus Transaksi"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: KAS & PERBANKAN */}
+          {activeTab === 'banking' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Kas & Perbankan</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveModal('modal_awal')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Penyetoran Modal
+                  </button>
+                  <button
+                    onClick={() => setActiveModal('setoran')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                  >
+                    <ArrowDownLeft className="w-3.5 h-3.5" />
+                    Terima Setoran Pedagang
+                  </button>
+                </div>
+              </div>
+
+              {/* Kas Card */}
+              <div className="dashboard-card p-6 bg-gradient-to-r from-slate-900 to-[#191a23] text-white">
+                <span className="text-xs uppercase tracking-wider text-emerald-400 font-bold block mb-1">
+                  Saldo Kas Berjalan
+                </span>
+                <div className="text-3xl font-extrabold tracking-tight mb-2">
+                  {formatIDR(metrics.kas)}
+                </div>
+                <p className="text-xs text-slate-400">
+                  Semua transaksi tercatat rapi dalam jurnal debit/kredit Kas & Bank (1001)
+                </p>
+              </div>
+
+              {/* Mutasi Kas Table */}
+              <div className="dashboard-card p-6">
+                <h3 className="font-bold text-sm text-slate-900 mb-4">Semua Riwayat Jurnal Kas</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3">Tanggal & Bukti</th>
+                        <th className="pb-3">Keterangan</th>
+                        <th className="pb-3">Tipe Transaksi</th>
+                        <th className="pb-3 text-right">Debit (Masuk)</th>
+                        <th className="pb-3 text-right">Kredit (Keluar)</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.details?.some(d => d.kode_akun === '1001')).length === 0) ? (
+                        <tr>
+                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
+                            Belum ada riwayat mutasi kas tercatat
+                          </td>
+                        </tr>
+                      ) : (
+                        dashboardData.recentJournals.map((j) => {
+                        const kasDetail = j.details.find(d => d.kode_akun === '1001');
+                        if (!kasDetail) return null;
+                        return (
+                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3">
+                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3 text-xs text-slate-700">{j.keterangan}</td>
+                            <td className="py-3">
+                              <span className="text-[11px] font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                                {j.tipe_transaksi}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right font-bold text-emerald-600">
+                              {kasDetail.debit > 0 ? formatIDR(kasDetail.debit) : '-'}
+                            </td>
+                            <td className="py-3 text-right font-bold text-rose-500">
+                              {kasDetail.kredit > 0 ? formatIDR(kasDetail.kredit) : '-'}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditTransaction(j)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => openDeleteTransaction(j)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: LAPORAN KEUANGAN OTOMATIS (NERACA & LABA RUGI) */}
+          {activeTab === 'finance' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Laporan Keuangan</h2>
+                </div>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-full hover:bg-slate-50 shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Cetak Laporan
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* 1. NERACA (BALANCE SHEET) */}
+                <div className="dashboard-card p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900">Neraca (Balance Sheet)</h3>
+                        <p className="text-[11px] text-slate-400">Posisi Keuangan per {new Date().toISOString().slice(0, 10)}</p>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        metrics.isBalanced ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700'
+                      }`}>
+                        {metrics.isBalanced ? '✓ Seimbang (Balanced)' : 'Belum Seimbang'}
+                      </span>
+                    </div>
+
+                    {/* ASET */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Aset Lancar</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Kas & Bank</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.kas)}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Piutang Dagang (Pedagang)</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.piutang)}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Persediaan Barang Dagang</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.persediaan)}</span>
+                          </div>
+                          <div className="flex justify-between py-1.5 font-semibold text-slate-800 bg-slate-50 px-2 rounded">
+                            <span>Total Aset Lancar</span>
+                            <span>{formatIDR(metrics.kas + metrics.piutang + metrics.persediaan)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Aset Tetap</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Peralatan & Mesin Pabrik</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.peralatan)}</span>
+                          </div>
+                          <div className="flex justify-between py-1.5 font-semibold text-slate-800 bg-slate-50 px-2 rounded">
+                            <span>Total Aset Tetap</span>
+                            <span>{formatIDR(metrics.peralatan)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TOTAL ASET */}
+                      <div className="flex justify-between py-2.5 px-3 bg-[#191a23] text-white rounded-xl font-extrabold text-sm">
+                        <span>TOTAL ASET</span>
+                        <span className="text-emerald-400">{formatIDR(metrics.totalAset)}</span>
+                      </div>
+
+                      {/* KEWAJIBAN & EKUITAS */}
+                      <div className="pt-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Kewajiban & Ekuitas</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Utang Usaha</span>
+                            <span className="font-bold text-slate-900">Rp 0</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Modal Disetor</span>
+                            <span className="font-bold text-slate-900">
+                              {formatIDR(metrics.totalAset - metrics.labaBersih)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Laba Periode Berjalan</span>
+                            <span className="font-bold text-emerald-600">{formatIDR(metrics.labaBersih)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TOTAL KEWAJIBAN & EKUITAS */}
+                      <div className="flex justify-between py-2.5 px-3 bg-slate-100 text-slate-900 rounded-xl font-extrabold text-sm">
+                        <span>TOTAL KEWAJIBAN & EKUITAS</span>
+                        <span>{formatIDR(metrics.totalAset)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. LABA RUGI (INCOME STATEMENT) */}
+                <div className="dashboard-card p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900">Laba Rugi (Income Statement)</h3>
+                        <p className="text-[11px] text-slate-400">Kinerja Keuangan Periode Berjalan</p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                        Surplus
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* PENDAPATAN */}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Pendapatan Penjualan</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Penjualan Kerupuk ke Pedagang</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.penjualan)}</span>
+                          </div>
+                          <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded">
+                            <span>Total Pendapatan</span>
+                            <span className="text-emerald-600">{formatIDR(metrics.penjualan)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* HPP */}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Harga Pokok Penjualan (HPP)</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Beban Pokok Produksi & Kerupuk Terjual</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.hpp)}</span>
+                          </div>
+                          <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded">
+                            <span>Total HPP</span>
+                            <span className="text-rose-500">({formatIDR(metrics.hpp)})</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* LABA KOTOR */}
+                      <div className="flex justify-between py-2.5 px-3 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl font-extrabold text-sm">
+                        <span>LABA KOTOR (GROSS PROFIT)</span>
+                        <span className="text-emerald-700">{formatIDR(metrics.labaKotor)}</span>
+                      </div>
+
+                      {/* BEBAN OPERASIONAL */}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Beban Operasional</h4>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between py-1 border-b border-slate-50">
+                            <span className="text-slate-600">Beban Listrik, BBM & Pemeliharaan</span>
+                            <span className="font-bold text-slate-900">{formatIDR(metrics.bebanOperasional)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* LABA BERSIH */}
+                      <div className="flex justify-between py-3 px-4 bg-gradient-to-r from-[#191a23] to-[#121319] text-white rounded-2xl font-extrabold text-base shadow-md">
+                        <span>LABA BERSIH (NET PROFIT)</span>
+                        <span className="text-emerald-400">{formatIDR(metrics.labaBersih)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SUPER ADMIN PABRIK & MANAJEMEN USER */}
+          {activeTab === 'factories' && (
+            <div className="space-y-6">
+              {/* Header & Sub-Tab Switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Entitas Pabrik & Pengguna</h2>
+                </div>
+                
+                {/* Sub Tab Pills */}
+                <div className="flex items-center gap-2 bg-slate-200/60 p-1 rounded-full text-xs font-semibold">
+                  <button
+                    onClick={() => setSuperAdminSubTab('pabrik')}
+                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
+                      superAdminSubTab === 'pabrik'
+                        ? 'bg-[#191a23] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Factory className="w-3.5 h-3.5" />
+                    Entitas Pabrik ({factories.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSuperAdminSubTab('users');
+                      loadUsers();
+                    }}
+                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
+                      superAdminSubTab === 'users'
+                        ? 'bg-[#191a23] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Manajemen Pengguna ({usersList.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* SUB-VIEW 1: ENTITAS PABRIK (CRUD PABRIK) */}
+              {superAdminSubTab === 'pabrik' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-slate-500">
+                      Menampilkan seluruh entitas pabrik aktif yang terisolasi secara multi-tenant
+                    </p>
+                    <button
+                      onClick={() => {
+                        setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
+                        setActiveModal('tambah_pabrik');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Tambah Pabrik Baru
+                    </button>
+                  </div>
+
+                  {/* Multi-Pabrik Comparison Cards */}
+                  {loading && (!dashboardData?.data?.factories || !dashboardData.isGlobal) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[1, 2, 3].map((n) => (
+                        <div key={n} className="dashboard-card p-6 flex flex-col justify-between animate-pulse space-y-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-200" />
+                              <div className="w-14 h-6 rounded-lg bg-slate-100" />
+                            </div>
+                            <div className="w-3/4 h-5 bg-slate-200 rounded mb-2" />
+                            <div className="w-1/2 h-3.5 bg-slate-100 rounded mb-4" />
+                            <div className="space-y-2 border-t border-slate-100 pt-3">
+                              <div className="w-full h-4 bg-slate-100 rounded" />
+                              <div className="w-full h-4 bg-slate-100 rounded" />
+                              <div className="w-full h-4 bg-slate-100 rounded" />
+                              <div className="w-full h-4 bg-slate-100 rounded" />
+                            </div>
+                          </div>
+                          <div className="w-full h-9 bg-slate-200 rounded-xl mt-5" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {(dashboardData?.data?.factories || []).map((f) => (
+                      <div key={f.pabrik.id} className="dashboard-card p-6 flex flex-col justify-between group">
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                              P{f.pabrik.id}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditPabrikForm({
+                                    id: f.pabrik.id,
+                                    nama_pabrik: f.pabrik.nama_pabrik,
+                                    alamat: f.pabrik.alamat || '',
+                                    telepon: f.pabrik.telepon || '',
+                                    penanggung_jawab: f.pabrik.penanggung_jawab || ''
+                                  });
+                                  setActiveModal('edit_pabrik');
+                                }}
+                                title="Edit Pabrik"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedPabrikToDelete(f.pabrik);
+                                  setActiveModal('delete_pabrik_confirm');
+                                }}
+                                title="Hapus Pabrik"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <h3 className="font-extrabold text-lg text-slate-900 mb-1">{f.pabrik.nama_pabrik}</h3>
+                          <p className="text-xs text-slate-400 mb-1">{f.pabrik.alamat || 'Indonesia'}</p>
+                          <p className="text-[11px] text-slate-500 font-medium mb-4">
+                            PIC: <span className="text-slate-800 font-semibold">{f.pabrik.penanggung_jawab || '-'}</span> | Telp: <span className="font-mono">{f.pabrik.telepon || '-'}</span>
+                          </p>
+
+                          <div className="space-y-2 border-t border-slate-100 pt-3 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Saldo Kas:</span>
+                              <span className="font-bold text-slate-900">{formatIDR(f.kas)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Piutang Mengendap:</span>
+                              <span className="font-bold text-rose-500">{formatIDR(f.piutang)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Persediaan Gudang:</span>
+                              <span className="font-bold text-amber-600">{formatIDR(f.persediaan)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Total Omset:</span>
+                              <span className="font-extrabold text-slate-900">{formatIDR(f.omset)}</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-slate-900">
+                              <span>Laba Bersih:</span>
+                              <span className="text-emerald-600">{formatIDR(f.labaBersih)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSelectedPabrikId(String(f.pabrik.id));
+                            setActiveTab('dashboard');
+                          }}
+                          className="mt-5 w-full py-2.5 text-xs font-semibold bg-[#191a23] text-white hover:bg-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          Buka Dashboard Pabrik Ini →
+                        </button>
+                      </div>
+                    ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SUB-VIEW 2: MANAJEMEN PENGGUNA (CRUD USER) */}
+              {superAdminSubTab === 'users' && (
+                <div className="space-y-6">
+                  {/* Top Stats & Add User Button */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="grid grid-cols-3 gap-3 flex-1 max-w-lg">
+                      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Pengguna</span>
+                        <span className="text-lg font-extrabold text-slate-900">{usersList.length}</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Admin Pabrik</span>
+                        <span className="text-lg font-extrabold text-emerald-600">
+                          {usersList.filter(u => u.role === 'admin_pabrik').length}
+                        </span>
+                      </div>
+                      <div className="bg-white p-3 rounded-2xl border border-slate-200/70 text-center">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Akun Pedagang</span>
+                        <span className="text-lg font-extrabold text-blue-600">
+                          {usersList.filter(u => u.role === 'pedagang').length}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setUserForm({
+                          id: null,
+                          nama: '',
+                          email: '',
+                          username: '',
+                          password: '',
+                          role: 'admin_pabrik',
+                          pabrik_id: factories[0]?.id ? String(factories[0].id) : '',
+                          pedagang_id: '',
+                          status: 'aktif'
+                        });
+                        setActiveModal('tambah_user');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm self-start sm:self-auto"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Tambah Pengguna Baru
+                    </button>
+                  </div>
+
+                  {/* Users Table */}
+                  <div className="dashboard-card p-6">
+                    <h3 className="font-bold text-sm text-slate-900 mb-4">Daftar Seluruh Pengguna & Hak Akses</h3>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            <th className="pb-3 pl-2">Nama & Email</th>
+                            <th className="pb-3">Username</th>
+                            <th className="pb-3">Peran (Role)</th>
+                            <th className="pb-3">Pabrik / Mitra Terkait</th>
+                            <th className="pb-3">Status</th>
+                            <th className="pb-3 text-right pr-2">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {usersList.map((u, idx) => {
+                            const isSuper = u.role === 'super_admin';
+                            const isAdminPabrik = u.role === 'admin_pabrik';
+                            const isPedagang = u.role === 'pedagang';
+
+                            return (
+                              <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-3.5 pl-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-sm ${
+                                      isSuper 
+                                        ? 'bg-[#191a23]' 
+                                        : isAdminPabrik 
+                                        ? 'bg-emerald-600' 
+                                        : 'bg-blue-600'
+                                    }`}>
+                                      {u.nama ? u.nama.slice(0, 2).toUpperCase() : 'US'}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900 leading-tight">{u.nama}</p>
+                                      <p className="text-[11px] text-slate-400">{u.email}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 font-mono text-xs text-slate-700">
+                                  @{u.username}
+                                </td>
+                                <td className="py-3.5">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                    isSuper 
+                                      ? 'bg-slate-900 text-white' 
+                                      : isAdminPabrik 
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  }`}>
+                                    {isSuper && <Shield className="w-3 h-3 text-amber-400" />}
+                                    {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Pedagang'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 text-xs text-slate-600">
+                                  {isSuper ? (
+                                    <span className="text-slate-400 italic">Semua Pabrik (Global)</span>
+                                  ) : isPedagang ? (
+                                    <div>
+                                      <span className="font-semibold text-slate-800 block">{u.nama_pedagang || 'Mitra'}</span>
+                                      <span className="text-[10px] text-slate-400">{u.nama_pabrik}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="font-semibold text-slate-800">{u.nama_pabrik || '-'}</span>
+                                  )}
+                                </td>
+                                <td className="py-3.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                    u.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                                  }`}>
+                                    {u.status || 'aktif'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 text-right pr-2">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setUserForm({
+                                          id: u.id,
+                                          nama: u.nama,
+                                          email: u.email,
+                                          username: u.username,
+                                          password: '',
+                                          role: u.role,
+                                          pabrik_id: u.pabrik_id ? String(u.pabrik_id) : '',
+                                          pedagang_id: u.pedagang_id ? String(u.pedagang_id) : '',
+                                          status: u.status || 'aktif'
+                                        });
+                                        setActiveModal('edit_user');
+                                      }}
+                                      className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                                      title="Edit Pengguna"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedUserToDelete(u);
+                                        setActiveModal('delete_user_confirm');
+                                      }}
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                      title="Hapus Pengguna"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* TAB: PORTAL MITRA PEDAGANG */}
+          {activeTab === 'pedagang_portal' && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-[#191a23] via-[#232635] to-[#191a23] text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/5">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-semibold">
+                    <Store className="w-3.5 h-3.5" />
+                    <span>Portal Mitra Pedagang</span>
+                  </div>
+                  <h2 className="text-xl font-black text-white">
+                    Halo, {currentUser?.nama_pedagang || currentUser?.nama}!
+                  </h2>
+                  <p className="text-xs text-slate-300">
+                    Mitra Resmi Rekanan: <strong className="text-amber-300">{currentUser?.nama_pabrik || currentFactory?.nama_pabrik}</strong>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => loadPedagangPortalData(currentUser)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-all active:scale-95"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Perbarui Data</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3 Metric Cards for Pedagang */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="dashboard-card p-5 border-l-4 border-l-rose-500">
+                  <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Utang Belum Lunas</span>
+                  <div className="text-2xl font-extrabold text-rose-600 mb-1">
+                    {formatIDR(pedagangPortalData?.saldoPiutangSaatIni || 0)}
+                  </div>
+                  
+                </div>
+
+                <div className="dashboard-card p-5 border-l-4 border-l-emerald-500">
+                  <span className="text-xs font-bold text-slate-400 block mb-1">Limit Plafon Kredit</span>
+                  <div className="text-2xl font-extrabold text-slate-800 mb-1">
+                    {formatIDR(pedagangPortalData?.limitPiutang || 0)}
+                  </div>
+                  
+                </div>
+
+                <div className="dashboard-card p-5 border-l-4 border-l-sky-500">
+                  <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Plafon Tersedia</span>
+                  <div className="text-2xl font-extrabold text-sky-600 mb-1">
+                    {formatIDR(pedagangPortalData?.sisaLimit || 0)}
+                  </div>
+                  
+                </div>
+              </div>
+
+              {/* Kartu Piutang Table */}
+              <div className="dashboard-card p-6 space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900">Riwayat Mutasi & Kartu Piutang</h3>
+                    
+                  </div>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Cetak Kartu</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b text-slate-400 uppercase tracking-wider text-[10px]">
+                        <th className="pb-3">Tanggal</th>
+                        <th className="pb-3">No. Bukti / Transaksi</th>
+                        <th className="pb-3 text-right">Barang Diterima (Debit)</th>
+                        <th className="pb-3 text-right">Setoran Uang (Kredit)</th>
+                        <th className="pb-3 text-right">Saldo Sisa Utang</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(!pedagangPortalData?.history || pedagangPortalData.history.length === 0) ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-slate-400">
+                            Belum ada riwayat transaksi tercatat
+                          </td>
+                        </tr>
+                      ) : (
+                        pedagangPortalData.history.map((h, i) => (
+                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 font-mono text-slate-600">{h.tanggal}</td>
+                            <td className="py-3">
+                              <span className="font-bold text-slate-900 block">{h.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{h.keterangan || h.nama_produk}</span>
+                            </td>
+                            <td className="py-3 text-right font-semibold text-rose-500">
+                              {h.penambahan_piutang > 0 ? formatIDR(h.penambahan_piutang) : '-'}
+                            </td>
+                            <td className="py-3 text-right font-semibold text-emerald-600">
+                              {h.pengurangan_piutang > 0 ? formatIDR(h.pengurangan_piutang) : '-'}
+                            </td>
+                            <td className="py-3 text-right font-extrabold text-slate-900">
+                              {formatIDR(h.saldo_berjalan)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bank Account & Payment Instructions */}
+              <div className="dashboard-card p-6 bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-200/60 rounded-3xl space-y-3">
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-amber-600" />
+                  Rekening Pembayaran & Setoran Pabrik
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Setoran tunai dapat diserahkan langsung ke supir drop barang atau ditransfer via rekening resmi pabrik:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 bg-white rounded-2xl border border-amber-200/50 shadow-sm">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Bank BCA</span>
+                    <span className="text-sm font-black font-mono text-slate-900 block">8830-192-881</span>
+                    <span className="text-xs text-slate-500">a.n PT Raja Kerupuk Nusantara</span>
+                  </div>
+                  <div className="p-3 bg-white rounded-2xl border border-amber-200/50 shadow-sm">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Konfirmasi Setoran</span>
+                    <span className="text-sm font-bold text-emerald-700 block">+62 812-3456-7890</span>
+                    <span className="text-xs text-slate-500">WhatsApp Admin Keuangan Pabrik</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* ========================================================= */}
+      {/* MODAL DIALOGS FOR DOUBLE-ENTRY OPERATIONS                 */}
+      {/* ========================================================= */}
+
+      {/* MODAL 1: SETOR MODAL AWAL */}
+      {activeModal === 'modal_awal' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Penyetoran Modal Awal</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/transaksi/modal', modalForm, 'Penyetoran modal awal berhasil dicatat!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nominal Modal (Rp)</label>
+                <input
+                  type="number"
+                  required
+                  placeholder="Contoh: 100000000"
+                  value={modalForm.nominal}
+                  onChange={(e) => setModalForm({ ...modalForm, nominal: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Keterangan</label>
+                <input
+                  type="text"
+                  placeholder="Penyetoran Modal Pemilik"
+                  value={modalForm.keterangan}
+                  onChange={(e) => setModalForm({ ...modalForm, keterangan: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-2xl text-xs space-y-1 text-slate-600 border border-slate-100">
+                <p className="font-bold text-slate-800">Dampak Jurnal Akuntansi:</p>
+                <p>• Kas (Aset Lancar) [Debit] + Rp {Number(modalForm.nominal || 0).toLocaleString('id-ID')}</p>
+                <p>• Modal Disetor [Kredit] + Rp {Number(modalForm.nominal || 0).toLocaleString('id-ID')}</p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Simpan Jurnal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: BELI PERALATAN (ASET TETAP) */}
+      {activeModal === 'beli_peralatan' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Pembelian Peralatan / Mesin</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/transaksi/beli-peralatan', peralatanForm, 'Pembelian peralatan berhasil dicatat!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Mesin / Peralatan</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Mesin Pengaduk & Cetak Kerupuk"
+                  value={peralatanForm.nama_item}
+                  onChange={(e) => setPeralatanForm({ ...peralatanForm, nama_item: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="25000000"
+                    value={peralatanForm.harga}
+                    onChange={(e) => setPeralatanForm({ ...peralatanForm, harga: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jumlah (Unit)</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={peralatanForm.qty}
+                    onChange={(e) => setPeralatanForm({ ...peralatanForm, qty: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Beli & Catat Jurnal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: BELI PERSEDIAAN */}
+      {activeModal === 'beli_persediaan' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Belanja Persediaan</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/transaksi/beli-persediaan', persediaanForm, 'Pembelian persediaan berhasil dicatat!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Produk Kerupuk</label>
+                <select
+                  required
+                  value={persediaanForm.produk_id}
+                  onChange={(e) => {
+                    const pid = e.target.value;
+                    const prod = dashboardData?.produkList.find(p => String(p.id) === pid);
+                    setPersediaanForm({ 
+                      ...persediaanForm, 
+                      produk_id: pid,
+                      harga_beli: prod ? String(prod.harga_beli) : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                >
+                  <option value="">-- Pilih Produk --</option>
+                  {(dashboardData?.produkList || []).map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.nama_produk} (Sisa stok: {p.stok} {p.satuan})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jumlah Bal</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="100"
+                    value={persediaanForm.qty}
+                    onChange={(e) => setPersediaanForm({ ...persediaanForm, qty: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Beli HPP (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    value={persediaanForm.harga_beli}
+                    onChange={(e) => setPersediaanForm({ ...persediaanForm, harga_beli: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Tambah Stok
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: DISTRIBUSI BARANG KE PEDAGANG (PIUTANG) */}
+      {activeModal === 'distribusi' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Distribusi Barang</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/transaksi/distribusi', distribusiForm, 'Distribusi barang berhasil dicatat!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Pedagang Penerima</label>
+                <select
+                  required
+                  value={distribusiForm.pedagang_id}
+                  onChange={(e) => setDistribusiForm({ ...distribusiForm, pedagang_id: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                >
+                  <option value="">-- Pilih Pedagang --</option>
+                  {(dashboardData?.pedagangList || []).map((ped) => (
+                    <option key={ped.id} value={String(ped.id)}>
+                      {ped.nama_pedagang} (Piutang: {formatShort(ped.saldo_piutang)} / Limit: {formatShort(ped.limit_piutang)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Produk</label>
+                <select
+                  required
+                  value={distribusiForm.produk_id}
+                  onChange={(e) => {
+                    const pid = e.target.value;
+                    const prod = dashboardData?.produkList.find(p => String(p.id) === pid);
+                    setDistribusiForm({
+                      ...distribusiForm,
+                      produk_id: pid,
+                      harga_jual: prod ? String(prod.harga_jual) : ''
+                    });
+                  }}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                >
+                  <option value="">-- Pilih Produk --</option>
+                  {(dashboardData?.produkList || []).map((prod) => (
+                    <option key={prod.id} value={String(prod.id)}>
+                      {prod.nama_produk} (Tersedia: {prod.stok} {prod.satuan})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Jumlah Bal</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="20"
+                    value={distribusiForm.qty}
+                    onChange={(e) => setDistribusiForm({ ...distribusiForm, qty: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Jual Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    value={distribusiForm.harga_jual}
+                    onChange={(e) => setDistribusiForm({ ...distribusiForm, harga_jual: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-emerald-50/70 p-3 rounded-2xl text-xs space-y-1 text-emerald-950 border border-emerald-100">
+                <p className="font-bold">Dampak 2 Pasang Jurnal Otomatis:</p>
+                <p>1. Piutang Dagang [Debit] vs Pendapatan Penjualan [Kredit]</p>
+                <p>2. Harga Pokok Penjualan (HPP) [Debit] vs Persediaan [Kredit]</p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Kirim & Catat Piutang
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: SETORAN PEMBAYARAN PEDAGANG */}
+      {activeModal === 'setoran' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Penerimaan Setoran</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/transaksi/setoran', setoranForm, 'Penerimaan setoran pedagang berhasil dicatat!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Pedagang</label>
+                <select
+                  required
+                  value={setoranForm.pedagang_id}
+                  onChange={(e) => setSetoranForm({ ...setoranForm, pedagang_id: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                >
+                  <option value="">-- Pilih Pedagang --</option>
+                  {(dashboardData?.pedagangList || []).map((ped) => (
+                    <option key={ped.id} value={String(ped.id)}>
+                      {ped.nama_pedagang} (Sisa Utang: {formatIDR(ped.saldo_piutang)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nominal Setoran (Rp)</label>
+                <input
+                  type="number"
+                  required
+                  placeholder="3000000"
+                  value={setoranForm.nominal}
+                  onChange={(e) => setSetoranForm({ ...setoranForm, nominal: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Keterangan</label>
+                <input
+                  type="text"
+                  placeholder="Setoran hasil penjualan laku"
+                  value={setoranForm.keterangan}
+                  onChange={(e) => setSetoranForm({ ...setoranForm, keterangan: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Terima Uang
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: TAMBAH PEDAGANG BARU */}
+      {activeModal === 'tambah_pedagang' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Tambah Pedagang Baru</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/pedagang', pedagangForm, 'Pedagang baru berhasil ditambahkan!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Pedagang</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Cak Nanang Grosir"
+                  value={pedagangForm.nama_pedagang}
+                  onChange={(e) => setPedagangForm({ ...pedagangForm, nama_pedagang: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nomor Telepon</label>
+                <input
+                  type="text"
+                  placeholder="0812-3456-7890"
+                  value={pedagangForm.no_telepon}
+                  onChange={(e) => setPedagangForm({ ...pedagangForm, no_telepon: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Alamat / Lokasi Kios</label>
+                <input
+                  type="text"
+                  placeholder="Pasar Waru Blok B"
+                  value={pedagangForm.alamat}
+                  onChange={(e) => setPedagangForm({ ...pedagangForm, alamat: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Limit Piutang (Rp)</label>
+                <input
+                  type="number"
+                  placeholder="20000000"
+                  value={pedagangForm.limit_piutang}
+                  onChange={(e) => setPedagangForm({ ...pedagangForm, limit_piutang: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Simpan Pedagang
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: TAMBAH PRODUK BARU */}
+      {activeModal === 'tambah_produk' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Tambah Produk Baru</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleTransactionSubmit('/api/produk', produkForm, 'Produk baru berhasil ditambahkan!');
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Produk</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Kerupuk Ikan Tenggiri"
+                  value={produkForm.nama_produk}
+                  onChange={(e) => setProdukForm({ ...produkForm, nama_produk: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                  <input
+                    type="text"
+                    value={produkForm.kategori}
+                    onChange={(e) => setProdukForm({ ...produkForm, kategori: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Satuan</label>
+                  <input
+                    type="text"
+                    value={produkForm.satuan}
+                    onChange={(e) => setProdukForm({ ...produkForm, satuan: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Beli HPP (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="90000"
+                    value={produkForm.harga_beli}
+                    onChange={(e) => setProdukForm({ ...produkForm, harga_beli: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Jual (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="130000"
+                    value={produkForm.harga_jual}
+                    onChange={(e) => setProdukForm({ ...produkForm, harga_jual: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Simpan Produk
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 8: TAMBAH PABRIK BARU (SUPER ADMIN) */}
+      {activeModal === 'tambah_pabrik' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900">Tambah Entitas Pabrik Baru</h3>
+                <p className="text-xs text-slate-400">Multi-tenant: Akun perkiraan COA akan otomatis dibuat</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const res = await fetch('/api/pabrik', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(pabrikForm)
+                });
+                const data = await res.json();
+                if (data.success) {
+                  showToast(`Pabrik "${pabrikForm.nama_pabrik}" berhasil dibuat!`);
+                  setActiveModal(null);
+                  await loadFactories();
+                  setSelectedPabrikId(String(data.data.id));
+                } else {
+                  showToast(data.error || 'Gagal tambah pabrik', 'error');
+                }
+              } catch (err) {
+                showToast(err.message, 'error');
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Pabrik</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Pabrik Kerupuk Mawar"
+                  value={pabrikForm.nama_pabrik}
+                  onChange={(e) => setPabrikForm({ ...pabrikForm, nama_pabrik: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Kota / Alamat</label>
+                <input
+                  type="text"
+                  placeholder="Jl. Raya Semarang No. 10"
+                  value={pabrikForm.alamat}
+                  onChange={(e) => setPabrikForm({ ...pabrikForm, alamat: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Penanggung Jawab / Admin</label>
+                <input
+                  type="text"
+                  placeholder="Pak Rahmat"
+                  value={pabrikForm.penanggung_jawab}
+                  onChange={(e) => setPabrikForm({ ...pabrikForm, penanggung_jawab: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Modal Awal Setoran (Rp)</label>
+                <input
+                  type="number"
+                  placeholder="100000000"
+                  value={pabrikForm.modal_awal}
+                  onChange={(e) => setPabrikForm({ ...pabrikForm, modal_awal: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Buat Pabrik
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 9: DETAIL KARTU PIUTANG PEDAGANG */}
+      {activeModal === 'kartu_piutang' && selectedPedagang && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-lg text-slate-900">Kartu Piutang: {selectedPedagang.nama_pedagang}</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Metric Summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-50 p-3 rounded-2xl text-center">
+                <span className="text-[11px] text-slate-400 block mb-0.5">Limit Piutang</span>
+                <span className="text-sm font-bold text-slate-800">
+                  {formatIDR(kartuPiutangData?.limitPiutang || selectedPedagang.limit_piutang)}
+                </span>
+              </div>
+              <div className="bg-rose-50 p-3 rounded-2xl text-center border border-rose-100">
+                <span className="text-[11px] text-rose-500 block mb-0.5">Sisa Utang Belum Lunas</span>
+                <span className="text-sm font-extrabold text-rose-600">
+                  {formatIDR(kartuPiutangData?.saldoPiutangSaatIni || selectedPedagang.saldo_piutang)}
+                </span>
+              </div>
+              <div className="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100">
+                <span className="text-[11px] text-emerald-600 block mb-0.5">Sisa Plafon Kredit</span>
+                <span className="text-sm font-extrabold text-emerald-700">
+                  {formatIDR(kartuPiutangData?.sisaLimit || 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Mutasi Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b text-slate-400 uppercase tracking-wider text-[10px]">
+                    <th className="pb-2">Tanggal</th>
+                    <th className="pb-2">No. Bukti / Transaksi</th>
+                    <th className="pb-2 text-right">Penambahan (Debit)</th>
+                    <th className="pb-2 text-right">Setoran (Kredit)</th>
+                    <th className="pb-2 text-right">Saldo Utang</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(kartuPiutangData?.history || []).map((h, i) => (
+                    <tr key={i} className="hover:bg-slate-50">
+                      <td className="py-2.5 text-slate-600">{h.tanggal}</td>
+                      <td className="py-2.5">
+                        <span className="font-semibold text-slate-800 block">{h.nomor_bukti}</span>
+                        <span className="text-[10px] text-slate-400">{h.keterangan || h.nama_produk}</span>
+                      </td>
+                      <td className="py-2.5 text-right font-semibold text-rose-500">
+                        {h.penambahan_piutang > 0 ? formatIDR(h.penambahan_piutang) : '-'}
+                      </td>
+                      <td className="py-2.5 text-right font-semibold text-emerald-600">
+                        {h.pengurangan_piutang > 0 ? formatIDR(h.pengurangan_piutang) : '-'}
+                      </td>
+                      <td className="py-2.5 text-right font-extrabold text-slate-900">
+                        {formatIDR(h.saldo_berjalan)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 10: EDIT PABRIK (SUPER ADMIN) */}
+      {activeModal === 'edit_pabrik' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">Edit Pabrik</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePabrik} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Pabrik</label>
+                <input
+                  type="text"
+                  required
+                  value={editPabrikForm.nama_pabrik}
+                  onChange={(e) => setEditPabrikForm({ ...editPabrikForm, nama_pabrik: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Kota / Alamat</label>
+                <input
+                  type="text"
+                  value={editPabrikForm.alamat}
+                  onChange={(e) => setEditPabrikForm({ ...editPabrikForm, alamat: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Penanggung Jawab</label>
+                  <input
+                    type="text"
+                    value={editPabrikForm.penanggung_jawab}
+                    onChange={(e) => setEditPabrikForm({ ...editPabrikForm, penanggung_jawab: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">No. Telepon</label>
+                  <input
+                    type="text"
+                    value={editPabrikForm.telepon}
+                    onChange={(e) => setEditPabrikForm({ ...editPabrikForm, telepon: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 11: KONFIRMASI HAPUS PABRIK (SUPER ADMIN) */}
+      {activeModal === 'delete_pabrik_confirm' && selectedPabrikToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base text-slate-900">Hapus Pabrik?</h3>
+              <p className="text-xs text-slate-500">
+                Pabrik <strong className="text-slate-800">"{selectedPabrikToDelete.nama_pabrik}"</strong> beserta seluruh produk, pedagang, dan jurnal double-entry terkait akan dihapus permanen.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  setSelectedPabrikToDelete(null);
+                }}
+                className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeletePabrik}
+                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 shadow-sm"
+              >
+                Ya, Hapus Pabrik
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 12: TAMBAH / EDIT USER (SUPER ADMIN) */}
+      {(activeModal === 'tambah_user' || activeModal === 'edit_user') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg text-slate-900">{activeModal === 'edit_user' ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}</h3>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Lengkap</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Pengguna"
+                  value={userForm.nama}
+                  onChange={(e) => setUserForm({ ...userForm, nama: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="user@email.com"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Username</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="username"
+                    value={userForm.username}
+                    onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Password {activeModal === 'edit_user' && <span className="text-[11px] font-normal text-slate-400">(Kosongkan jika tidak diubah)</span>}
+                </label>
+                <input
+                  type="password"
+                  placeholder={activeModal === 'edit_user' ? '••••••••' : 'Password login'}
+                  required={activeModal === 'tambah_user'}
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Peran (Role)</label>
+                  <select
+                    value={userForm.role}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  >
+                    <option value="super_admin">Super Admin (Owner)</option>
+                    <option value="admin_pabrik">Admin Pabrik</option>
+                    <option value="pedagang">Akun Pedagang</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Status</label>
+                  <select
+                    value={userForm.status}
+                    onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  >
+                    <option value="aktif">Aktif</option>
+                    <option value="nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              {userForm.role !== 'super_admin' && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tugaskan ke Pabrik</label>
+                  <select
+                    value={userForm.pabrik_id}
+                    onChange={(e) => setUserForm({ ...userForm, pabrik_id: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  >
+                    <option value="">-- Pilih Pabrik --</option>
+                    {factories.map((f) => (
+                      <option key={f.id} value={String(f.id)}>
+                        {f.nama_pabrik}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  {activeModal === 'edit_user' ? 'Simpan Pengguna' : 'Tambah Pengguna'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 13: KONFIRMASI HAPUS USER (SUPER ADMIN) */}
+      {activeModal === 'delete_user_confirm' && selectedUserToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base text-slate-900">Hapus Pengguna?</h3>
+              <p className="text-xs text-slate-500">
+                Pengguna <strong className="text-slate-800">"{selectedUserToDelete.nama}"</strong> (@{selectedUserToDelete.username}) akan dihapus dari sistem.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  setSelectedUserToDelete(null);
+                }}
+                className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 shadow-sm"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 14: EDIT TRANSAKSI / PEMBUKUAN */}
+      {activeModal === 'edit_transaksi' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900">Edit Transaksi</h3>
+                <span className="text-[11px] font-mono text-slate-400">
+                  {editTransactionForm.nomor_bukti} ({editTransactionForm.tipe_transaksi})
+                </span>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTransaction} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Tanggal Transaksi</label>
+                <input
+                  type="date"
+                  required
+                  value={editTransactionForm.tanggal}
+                  onChange={(e) => setEditTransactionForm({ ...editTransactionForm, tanggal: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Referensi / Item</label>
+                <input
+                  type="text"
+                  placeholder="Nomor referensi, nota, atau nama item"
+                  value={editTransactionForm.referensi}
+                  onChange={(e) => setEditTransactionForm({ ...editTransactionForm, referensi: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Keterangan / Catatan</label>
+                <textarea
+                  rows="3"
+                  required
+                  placeholder="Catatan transaksi..."
+                  value={editTransactionForm.keterangan}
+                  onChange={(e) => setEditTransactionForm({ ...editTransactionForm, keterangan: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs">
+                <span className="text-slate-500">Total Nominal Transaksi:</span>
+                <span className="font-extrabold text-slate-900 font-mono">
+                  {formatIDR(editTransactionForm.total_nominal)}
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 15: KONFIRMASI HAPUS TRANSAKSI */}
+      {activeModal === 'delete_transaksi_confirm' && selectedTransactionToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base text-slate-900">Hapus Transaksi?</h3>
+              <p className="text-xs text-slate-500">
+                Transaksi <strong className="text-slate-800 font-mono">{selectedTransactionToDelete.nomor_bukti}</strong> akan dihapus dan saldo akan dipulihkan.
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs">
+              <div className="flex justify-between text-slate-500">
+                <span>Tipe:</span>
+                <span className="font-semibold text-slate-800">{selectedTransactionToDelete.tipe_transaksi}</span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Nominal:</span>
+                <span className="font-extrabold text-slate-900">{formatIDR(selectedTransactionToDelete.total_nominal)}</span>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <span>Tanggal:</span>
+                <span className="font-mono text-slate-700">{selectedTransactionToDelete.tanggal}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+              Jurnal double-entry akan dibatalkan, dan saldo kas, piutang, serta stok akan dikembalikan secara otomatis.
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  setSelectedTransactionToDelete(null);
+                }}
+                className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteTransaction}
+                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 text-white rounded-xl hover:bg-rose-700 shadow-sm"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
