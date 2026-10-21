@@ -525,7 +525,7 @@ export default function App() {
 
   // Current active factory name
   const currentFactory = selectedPabrikId === 'all'
-    ? { id: 'all', nama_pabrik: 'Semua Pabrik (Konsolidasi Global)', lokasi: 'Semua Cabang', status: 'active' }
+    ? { id: 'all', nama_pabrik: 'Semua Pabrik', lokasi: 'Semua Cabang', status: 'active' }
     : (factories.find(f => String(f.id) === String(selectedPabrikId)) || factories[0]);
 
   // Loading screen while verifying session
@@ -906,7 +906,7 @@ export default function App() {
                       : 'bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10'
                   }`}
                 >
-                  <option value="all">Semua Pabrik (Konsolidasi Global)</option>
+                  <option value="all">Semua Pabrik</option>
                   {factories.map((f) => (
                     <option key={f.id} value={String(f.id)}>
                       {f.nama_pabrik}

@@ -66,7 +66,7 @@ export async function GET(request) {
         isGlobal: true,
         pabrik: {
           id: 'all',
-          nama_pabrik: 'Semua Pabrik (Konsolidasi Global)',
+          nama_pabrik: 'Semua Pabrik',
           lokasi: 'Semua Cabang',
           status: 'active'
         },
