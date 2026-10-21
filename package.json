@@ -14,6 +14,11 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1"
+  },
   "author": "Raja Kerupuk Team",
   "license": "MIT"
 }
