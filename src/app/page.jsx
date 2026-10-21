@@ -231,10 +231,27 @@ export default function App() {
   };
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('rk_dark_mode');
+      if (saved !== null) {
+        setDarkMode(saved === 'true');
+      }
+    } catch {}
     checkAuth();
     loadFactories();
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('rk_dark_mode', String(darkMode));
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch {}
+  }, [darkMode]);
 
   useEffect(() => {
     if (selectedPabrikId) {
@@ -626,7 +643,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen flex ${darkMode ? 'bg-[#0f1015] text-[#f1f3f6]' : 'bg-[#f1f3f6] text-[#191a23]'}`}>
+    <div className={`min-h-screen flex ${darkMode ? 'dark bg-[#0f1015] text-[#f1f3f6]' : 'bg-[#f1f3f6] text-[#191a23]'}`}>
       
       {/* Toast Notification */}
       {notification && (
@@ -651,12 +668,12 @@ export default function App() {
         <div className="space-y-6">
           {/* Logo & Brand Header */}
           <div className="flex items-center gap-3 px-2 pt-1">
-            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#1a1b24] border border-slate-200/90 dark:border-white/10 p-1 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
               <img src="/logo.png" alt="Raja Kerupuk Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-base tracking-tight text-slate-900">Raja Kerupuk</h1>
+                <h1 className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">Raja Kerupuk</h1>
               </div>
             </div>
           </div>
@@ -669,8 +686,8 @@ export default function App() {
                   onClick={() => setActiveTab('pedagang_portal')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'pedagang_portal'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <Store className="w-4 h-4" />
@@ -680,8 +697,8 @@ export default function App() {
                   onClick={() => setActiveTab('inventory')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'inventory'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <Boxes className="w-4 h-4" />
@@ -694,8 +711,8 @@ export default function App() {
                   onClick={() => setActiveTab('dashboard')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'dashboard'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -706,8 +723,8 @@ export default function App() {
                   onClick={() => setActiveTab('sales')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'sales'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <FileText className="w-4 h-4" />
@@ -718,8 +735,8 @@ export default function App() {
                   onClick={() => setActiveTab('inventory')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'inventory'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <Boxes className="w-4 h-4" />
@@ -730,8 +747,8 @@ export default function App() {
                   onClick={() => setActiveTab('purchases')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'purchases'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <ShoppingCart className="w-4 h-4" />
@@ -742,8 +759,8 @@ export default function App() {
                   onClick={() => setActiveTab('banking')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'banking'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <Landmark className="w-4 h-4" />
@@ -754,8 +771,8 @@ export default function App() {
                   onClick={() => setActiveTab('finance')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'finance'
-                      ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
                   <Receipt className="w-4 h-4" />
@@ -770,8 +787,8 @@ export default function App() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                       activeTab === 'factories' || selectedPabrikId === 'all'
-                        ? 'bg-[#191a23] text-white rounded-full shadow-sm'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-full'
+                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                     }`}
                   >
                     <Building2 className="w-4 h-4" />
@@ -789,7 +806,7 @@ export default function App() {
           {currentUser?.role !== 'pedagang' && (
             <button
               onClick={() => setActiveModal('distribusi')}
-              className="w-full py-2.5 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
             >
               <Plus className="w-3.5 h-3.5 text-emerald-400" />
               <span>Catat Distribusi</span>
@@ -797,11 +814,11 @@ export default function App() {
           )}
 
           {/* Theme Mode Toggle Pill */}
-          <div className="bg-slate-100 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600">
+          <div className="bg-slate-100 dark:bg-[#1a1b24] dark:border dark:border-white/10 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
             <button
               onClick={() => setDarkMode(false)}
               className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
-                !darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400'
+                !darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
               }`}
             >
               <Sun className="w-3.5 h-3.5" />
@@ -810,7 +827,7 @@ export default function App() {
             <button
               onClick={() => setDarkMode(true)}
               className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
-                darkMode ? 'bg-[#191a23] text-white shadow-sm font-semibold' : 'text-slate-400'
+                darkMode ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
               }`}
             >
               <Moon className="w-3.5 h-3.5" />
@@ -836,7 +853,7 @@ export default function App() {
             <button
               onClick={handleLogout}
               title="Keluar dari sistem"
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all shrink-0"
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -864,7 +881,7 @@ export default function App() {
                     : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-sm'
                 }`}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] text-slate-500 font-mono">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 rounded text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                 <span>⌘</span>
                 <span>Space</span>
               </div>
@@ -884,8 +901,8 @@ export default function App() {
                   }}
                   className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
                     selectedPabrikId === 'all'
-                      ? 'bg-[#191a23] text-white border-slate-700'
-                      : 'bg-white text-slate-800 border-slate-200'
+                      ? 'bg-[#191a23] dark:bg-emerald-600 text-white border-slate-700 dark:border-emerald-500'
+                      : 'bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10'
                   }`}
                 >
                   <option value="all">🏢 Semua Pabrik (Super Admin)</option>
@@ -896,18 +913,18 @@ export default function App() {
                   ))}
                 </select>
                 <Factory className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500'
+                  selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500 dark:text-slate-400'
                 }`} />
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             ) : currentUser?.role === 'admin_pabrik' ? (
-              <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded-full text-xs font-bold shadow-sm">
-                <Factory className="w-4 h-4 text-emerald-600" />
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 rounded-full text-xs font-bold shadow-sm">
+                <Factory className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>🏭 {currentUser.nama_pabrik || currentFactory?.nama_pabrik}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full text-xs font-bold shadow-sm">
-                <Store className="w-4 h-4 text-amber-600" />
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 rounded-full text-xs font-bold shadow-sm">
+                <Store className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span>🛒 {currentUser?.nama_pedagang || currentUser?.nama}</span>
               </div>
             )}
@@ -918,7 +935,7 @@ export default function App() {
             {currentUser?.role !== 'pedagang' && (
               <button
                 onClick={() => setActiveModal('distribusi')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Transaksi Baru</span>
@@ -926,22 +943,22 @@ export default function App() {
             )}
 
             {/* Notification bell */}
-            <button className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-sm relative">
+            <button className="w-9 h-9 rounded-full bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-sm relative">
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white dark:ring-[#14151c]" />
             </button>
 
             {/* User Avatar & Identity */}
-            <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-sm shadow-sm ring-2 ring-white">
+            <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-white/10">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-sm shadow-sm ring-2 ring-white dark:ring-[#14151c]">
                 {currentUser?.nama?.slice(0, 2).toUpperCase() || 'RK'}
               </div>
               <div className="hidden md:block">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-bold text-slate-800 leading-tight">
+                  <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">
                     {currentUser?.nama}
                   </p>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
                     {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Mitra'}
                   </span>
                 </div>
@@ -954,7 +971,7 @@ export default function App() {
               <button
                 onClick={handleLogout}
                 title="Keluar dari sistem"
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-full hover:bg-rose-100 hover:text-rose-700 transition-all active:scale-95 shadow-sm ml-1"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-full hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all active:scale-95 shadow-sm ml-1"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Keluar</span>
@@ -1097,7 +1114,7 @@ export default function App() {
                       <p className="text-xs text-slate-400">Tren penjualan distribusi ke pedagang</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <select className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 focus:outline-none shadow-sm cursor-pointer">
+                      <select className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1a1b24] text-slate-700 dark:text-slate-200 focus:outline-none shadow-sm cursor-pointer">
                         <option>Bulan Ini</option>
                         <option>Kuartal Ini</option>
                         <option>Tahun 2026</option>
@@ -1271,7 +1288,7 @@ export default function App() {
                       <path
                         d="M 30 105 A 70 70 0 0 1 170 105"
                         fill="none"
-                        stroke="#e2e8f0"
+                        stroke={darkMode ? '#2d3142' : '#e2e8f0'}
                         strokeWidth="5"
                         strokeLinecap="round"
                       />
@@ -1317,7 +1334,7 @@ export default function App() {
                       <Plus className="w-3.5 h-3.5" />
                       Tambah Pedagang
                     </button>
-                    <button className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-slate-50 transition-all flex items-center gap-1.5">
+                    <button className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center gap-1.5">
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                       Filters
                     </button>
@@ -1492,14 +1509,14 @@ export default function App() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                                   title="Edit Transaksi"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                   title="Hapus Transaksi"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
