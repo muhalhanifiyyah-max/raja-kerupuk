@@ -1,0 +1,17 @@
+{
+  "appId": "id.rajakerupuk.pedagang",
+  "appName": "Raja Kerupuk Pedagang",
+  "webDir": "out",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera", "photos"]
+    },
+    "Geolocation": {
+      "permissions": ["location"]
+    }
+  }
+}

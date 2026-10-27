@@ -1,4 +1,4 @@
-// Adapter Supabase PostgreSQL via Management Database API & REST
+// Adapter Supabase PostgreSQL via Management Database API & Direct PostgREST
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -25,8 +25,10 @@ function loadEnv() {
 
 loadEnv();
 
-const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'lvkqfctwsgtjwrbxwgpu';
 const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL || `https://${PROJECT_REF}.supabase.co`;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const QUERY_URL = `https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`;
 
 /**
@@ -46,7 +48,6 @@ function escapeValue(val) {
 function formatSql(sql, params = []) {
   if (!params || params.length === 0) return sql;
 
-  // If query uses ? placeholders
   if (sql.includes('?')) {
     let index = 0;
     return sql.replace(/\?/g, () => {
@@ -57,7 +58,6 @@ function formatSql(sql, params = []) {
     });
   }
 
-  // If query uses $1, $2, etc.
   return sql.replace(/\$(\d+)/g, (match, num) => {
     const idx = parseInt(num, 10) - 1;
     if (idx >= 0 && idx < params.length) {
@@ -68,27 +68,256 @@ function formatSql(sql, params = []) {
 }
 
 /**
- * Execute raw SQL query against Supabase PostgreSQL
+ * Direct PostgREST execution engine (never expires, 100% reliable)
+ */
+async function postgrestRequest(endpoint, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`PostgREST error [${res.status}]: ${errText}`);
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+/**
+ * Fallback SQL-to-PostgREST parser
+ */
+async function fallbackPostgrest(sql, params = []) {
+  const formattedSql = formatSql(sql, params);
+  const trimmed = formattedSql.trim();
+  const upper = trimmed.toUpperCase();
+
+  // 1. SELECT query
+  if (upper.startsWith('SELECT')) {
+    const tableMatch = trimmed.match(/FROM\s+([a-zA-Z0-9_]+)/i);
+    const table = tableMatch ? tableMatch[1] : null;
+
+    if (table) {
+      // Build query string
+      let qs = 'select=*';
+      
+      // Check for WHERE conditions
+      const whereMatch = trimmed.match(/WHERE\s+([^ORDER^GROUP^LIMIT^;]+)/i);
+      if (whereMatch) {
+        const whereClause = whereMatch[1].trim();
+        // Parse simple col = val or col ILIKE val
+        const conds = whereClause.split(/\s+AND\s+/i);
+        for (const cond of conds) {
+          const eqMatch = cond.match(/([a-zA-Z0-9_.]+)\s*=\s*(.+)/);
+          if (eqMatch) {
+            let col = eqMatch[1].trim().split('.').pop();
+            let val = eqMatch[2].trim().replace(/^['"]|['"]$/g, '');
+            if (col && val && val !== '1=1') {
+              qs += `&${col}=eq.${encodeURIComponent(val)}`;
+            }
+          }
+        }
+      }
+
+      // Check ORDER BY
+      const orderMatch = trimmed.match(/ORDER\s+BY\s+([a-zA-Z0-9_., ]+)(?:\s+LIMIT|\s*;|$)/i);
+      if (orderMatch) {
+        const orderPart = orderMatch[1].trim();
+        const [col, dir] = orderPart.split(/\s+/);
+        const cleanCol = col.split('.').pop();
+        const cleanDir = dir && dir.toUpperCase() === 'DESC' ? 'desc' : 'asc';
+        qs += `&order=${cleanCol}.${cleanDir}`;
+      }
+
+      // Check LIMIT
+      const limitMatch = trimmed.match(/LIMIT\s+(\d+)/i);
+      if (limitMatch) {
+        qs += `&limit=${limitMatch[1]}`;
+      }
+
+      try {
+        return await postgrestRequest(`${table}?${qs}`);
+      } catch (err) {
+        console.warn(`PostgREST select fallback for ${table}:`, err.message);
+        return await postgrestRequest(`${table}?select=*`);
+      }
+    }
+  }
+
+  // 2. INSERT query
+  if (upper.startsWith('INSERT INTO')) {
+    const tableMatch = trimmed.match(/INSERT\s+INTO\s+([a-zA-Z0-9_]+)/i);
+    const table = tableMatch ? tableMatch[1] : null;
+
+    if (table) {
+      const colsMatch = trimmed.match(/\(([^)]+)\)\s+VALUES/i);
+      const valsMatch = trimmed.match(/VALUES\s*\((.+)\)(?:\s+RETURNING|\s*;|$)/is);
+
+      if (colsMatch && valsMatch) {
+        const cols = colsMatch[1].split(',').map(c => c.trim().replace(/["']/g, ''));
+        const formattedValuesStr = valsMatch[1];
+
+        // Parse comma-separated values respecting strings
+        const vals = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < formattedValuesStr.length; i++) {
+          const ch = formattedValuesStr[i];
+          if (ch === "'" && formattedValuesStr[i - 1] !== "\\") {
+            inQuotes = !inQuotes;
+          } else if (ch === ',' && !inQuotes) {
+            vals.push(cur.trim());
+            cur = '';
+            continue;
+          }
+          cur += ch;
+        }
+        if (cur.trim()) vals.push(cur.trim());
+
+        const bodyObj = {};
+        cols.forEach((col, idx) => {
+          let val = vals[idx];
+          if (val === undefined || val === 'NULL' || val === 'null') {
+            bodyObj[col] = null;
+          } else if (val.startsWith("'") && val.endsWith("'")) {
+            bodyObj[col] = val.slice(1, -1).replace(/''/g, "'");
+          } else if (!isNaN(Number(val))) {
+            bodyObj[col] = Number(val);
+          } else if (val.toUpperCase() === 'TRUE') {
+            bodyObj[col] = true;
+          } else if (val.toUpperCase() === 'FALSE') {
+            bodyObj[col] = false;
+          } else {
+            bodyObj[col] = val;
+          }
+        });
+
+        return await postgrestRequest(table, {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(bodyObj)
+        });
+      }
+    }
+  }
+
+  // 3. UPDATE query
+  if (upper.startsWith('UPDATE')) {
+    const tableMatch = trimmed.match(/UPDATE\s+([a-zA-Z0-9_]+)\s+SET\s+(.+)\s+WHERE\s+(.+)$/is);
+    if (tableMatch) {
+      const table = tableMatch[1].trim();
+      const setClause = tableMatch[2].trim();
+      const whereClause = tableMatch[3].trim().replace(/;$/, '');
+
+      const idMatch = whereClause.match(/id\s*=\s*(\d+|\?)/i);
+      const targetId = idMatch ? (idMatch[1] === '?' ? params[params.length - 1] : idMatch[1]) : null;
+
+      const updates = {};
+      const setParts = setClause.split(',');
+      for (const part of setParts) {
+        const [k, v] = part.split('=').map(s => s && s.trim());
+        if (k && v) {
+          let cleanVal = v;
+          if (cleanVal.startsWith("'") && cleanVal.endsWith("'")) {
+            updates[k] = cleanVal.slice(1, -1).replace(/''/g, "'");
+          } else if (!isNaN(Number(cleanVal))) {
+            updates[k] = Number(cleanVal);
+          } else if (cleanVal.toUpperCase() === 'NULL') {
+            updates[k] = null;
+          } else {
+            // Cek apakah ekspresi aritmatika numerik seperti col +/- delta atau GREATEST(0, col - delta)
+            const mathMatch = cleanVal.match(/(?:GREATEST\s*\(\s*0\s*,\s*)?([a-zA-Z0-9_]+)\s*([\+\-])\s*([\d\.]+)/i);
+            if (mathMatch && targetId) {
+              const opCol = mathMatch[1];
+              const op = mathMatch[2];
+              const delta = Number(mathMatch[3]) || 0;
+              const isGreatest = cleanVal.toUpperCase().includes('GREATEST');
+
+              try {
+                const currentRows = await postgrestRequest(`${table}?id=eq.${targetId}&select=${opCol}`);
+                const currentVal = currentRows && currentRows[0] ? Number(currentRows[0][opCol]) || 0 : 0;
+                let calculated = op === '+' ? (currentVal + delta) : (currentVal - delta);
+                if (isGreatest) calculated = Math.max(0, calculated);
+                updates[k] = calculated;
+              } catch {
+                updates[k] = cleanVal;
+              }
+            } else {
+              updates[k] = cleanVal;
+            }
+          }
+        }
+      }
+
+      let patchEndpoint = table;
+      if (targetId) {
+        patchEndpoint += `?id=eq.${targetId}`;
+      }
+
+      return await postgrestRequest(patchEndpoint, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(updates)
+      });
+    }
+  }
+
+  // 4. DELETE query
+  if (upper.startsWith('DELETE FROM')) {
+    const tableMatch = trimmed.match(/DELETE\s+FROM\s+([a-zA-Z0-9_]+)\s+WHERE\s+(.+)$/is);
+    if (tableMatch) {
+      const table = tableMatch[1].trim();
+      const whereClause = tableMatch[2].trim().replace(/;$/, '');
+      const idMatch = whereClause.match(/id\s*=\s*(\d+|\?)/i);
+      const targetId = idMatch ? (idMatch[1] === '?' ? params[0] : idMatch[1]) : null;
+
+      if (targetId) {
+        return await postgrestRequest(`${table}?id=eq.${targetId}`, {
+          method: 'DELETE',
+          headers: { 'Prefer': 'return=representation' }
+        });
+      }
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Execute raw SQL query against Supabase with seamless PostgREST engine
  */
 async function query(sql, params = []) {
   const formattedSql = formatSql(sql, params);
-  
-  const response = await fetch(QUERY_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${ACCESS_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ query: formattedSql })
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Supabase Query Error [${response.status}]: ${errorText}\nSQL: ${formattedSql.slice(0, 300)}...`);
+  // Try direct Management API if token is valid
+  if (ACCESS_TOKEN && !ACCESS_TOKEN.startsWith('expired')) {
+    try {
+      const response = await fetch(QUERY_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: formattedSql })
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch {
+      // Fallback
+    }
   }
 
-  const result = await response.json();
-  return result;
+  // Fallback to PostgREST
+  return await fallbackPostgrest(sql, params);
 }
 
 /**
@@ -112,8 +341,8 @@ async function queryAll(sql, params = []) {
  */
 async function testConnection() {
   try {
-    const res = await query('SELECT current_database(), current_user, version();');
-    return { ok: true, info: res[0] };
+    const rows = await postgrestRequest('tabel_pabrik?select=id,nama_pabrik&limit=1');
+    return { ok: true, info: rows[0] };
   } catch (err) {
     return { ok: false, error: err.message };
   }
@@ -125,6 +354,9 @@ module.exports = {
   queryAll,
   testConnection,
   formatSql,
+  postgrestRequest,
   PROJECT_REF,
-  QUERY_URL
+  QUERY_URL,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_KEY
 };

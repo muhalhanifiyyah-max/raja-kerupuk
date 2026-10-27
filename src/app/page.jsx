@@ -49,8 +49,15 @@ import {
   EyeOff,
   KeyRound,
   Store,
-  LogIn
+  LogIn,
+  MapPin,
+  Camera,
+  Navigation,
+  Image as ImageIcon,
+  ExternalLink,
+  Compass
 } from 'lucide-react';
+import { captureDropPhoto, getDropLocation, isNativePlatform } from '@/lib/capacitor';
 
 export default function App() {
   const [factories, setFactories] = useState([]);
@@ -76,6 +83,30 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [pedagangPortalData, setPedagangPortalData] = useState(null);
+
+  // Check-point Drop & Pedagang Mobile State (Capacitor Android)
+  const [checkpointsList, setCheckpointsList] = useState([]);
+  const [checkpointsLoading, setCheckpointsLoading] = useState(false);
+  const [selectedCheckpointPhoto, setSelectedCheckpointPhoto] = useState(null);
+  const [pedagangSubTab, setPedagangSubTab] = useState('checkpoint_form'); // 'checkpoint_form' | 'checkpoint_history' | 'kartu_piutang' | 'katalog'
+  const [pedagangProdukList, setPedagangProdukList] = useState([]);
+  const [checkpointForm, setCheckpointForm] = useState({
+    nama_warung: '',
+    alamat_warung: '',
+    produk_id: '',
+    qty: '1',
+    harga_jual: '',
+    metode_bayar: 'piutang', // 'piutang' | 'tunai'
+    catatan: '',
+    latitude: null,
+    longitude: null,
+    akurasi_meter: null,
+    foto_bukti: null
+  });
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [checkpointSubmitting, setCheckpointSubmitting] = useState(false);
+  const [checkpointSearch, setCheckpointSearch] = useState('');
 
   // Form states
   const [modalForm, setModalForm] = useState({ nominal: '', tanggal: '', keterangan: '' });
@@ -106,6 +137,8 @@ export default function App() {
         } else if (data.user.role === 'pedagang') {
           setActiveTab('pedagang_portal');
           loadPedagangPortalData(data.user);
+          loadPedagangProduk(data.user.pabrik_id);
+          loadCheckpoints(data.user.pabrik_id, data.user.pedagang_id);
         }
       } else {
         setCurrentUser(null);
@@ -129,6 +162,156 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error load pedagang portal data:', err);
+    }
+  };
+
+  const loadPedagangProduk = async (pabrikId) => {
+    try {
+      const pId = pabrikId || currentUser?.pabrik_id || 1;
+      const res = await fetch(`/api/produk?pabrik_id=${pId}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setPedagangProdukList(data.data);
+        if (data.data.length > 0 && !checkpointForm.produk_id) {
+          setCheckpointForm(prev => ({
+            ...prev,
+            produk_id: String(data.data[0].id),
+            harga_jual: String(data.data[0].harga_jual || '')
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Error load produk pedagang:', err);
+    }
+  };
+
+  const loadCheckpoints = async (targetPabrikId = null, targetPedagangId = null) => {
+    try {
+      setCheckpointsLoading(true);
+      const pId = targetPabrikId !== null ? targetPabrikId : selectedPabrikId;
+      let url = '/api/checkpoint?';
+      if (pId && pId !== 'all') {
+        url += `pabrik_id=${pId}&`;
+      }
+      if (targetPedagangId) {
+        url += `pedagang_id=${targetPedagangId}&`;
+      }
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.checkPoints) {
+        setCheckpointsList(data.checkPoints);
+      }
+    } catch (err) {
+      console.error('Error load checkpoints:', err);
+    } finally {
+      setCheckpointsLoading(false);
+    }
+  };
+
+  const handleTakeDropPhoto = async () => {
+    try {
+      setIsTakingPhoto(true);
+      const result = await captureDropPhoto();
+      if (result && result.success && result.dataUrl) {
+        setCheckpointForm(prev => ({ ...prev, foto_bukti: result.dataUrl }));
+        showToast('Foto bukti drop berhasil diambil');
+      } else if (result && result.error) {
+        showToast(result.error, 'error');
+      }
+    } catch (err) {
+      showToast('Gagal mengakses kamera: ' + err.message, 'error');
+    } finally {
+      setIsTakingPhoto(false);
+    }
+  };
+
+  const handleGetDropLocation = async () => {
+    try {
+      setIsGettingLocation(true);
+      const result = await getDropLocation();
+      if (result && result.success && result.latitude && result.longitude) {
+        setCheckpointForm(prev => ({
+          ...prev,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          akurasi_meter: result.accuracy ? Math.round(result.accuracy) : null
+        }));
+        showToast('Titik koordinat GPS berhasil dikunci');
+      } else {
+        showToast((result && result.error) || 'Gagal membaca koordinat GPS', 'error');
+      }
+    } catch (err) {
+      showToast('Gagal mengakses GPS: ' + err.message, 'error');
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
+  const handleSubmitCheckpoint = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!checkpointForm.nama_warung.trim()) {
+      showToast('Nama warung wajib diisi', 'error');
+      return;
+    }
+    if (!checkpointForm.produk_id) {
+      showToast('Pilih jenis produk kerupuk', 'error');
+      return;
+    }
+    if (!checkpointForm.qty || Number(checkpointForm.qty) <= 0) {
+      showToast('Jumlah (bal) harus lebih dari 0', 'error');
+      return;
+    }
+
+    try {
+      setCheckpointSubmitting(true);
+      const payload = {
+        pedagang_id: currentUser?.pedagang_id || 1,
+        pabrik_id: currentUser?.pabrik_id || 1,
+        nama_warung: checkpointForm.nama_warung.trim(),
+        alamat_warung: checkpointForm.alamat_warung.trim(),
+        produk_id: Number(checkpointForm.produk_id),
+        qty: Number(checkpointForm.qty),
+        harga_jual: Number(checkpointForm.harga_jual) || 0,
+        metode_bayar: checkpointForm.metode_bayar,
+        catatan: checkpointForm.catatan,
+        latitude: checkpointForm.latitude,
+        longitude: checkpointForm.longitude,
+        akurasi_meter: checkpointForm.akurasi_meter,
+        foto_bukti: checkpointForm.foto_bukti,
+        tanggal: new Date().toISOString().slice(0, 10)
+      };
+
+      const res = await fetch('/api/checkpoint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Check-point drop kerupuk ke ' + payload.nama_warung + ' berhasil disimpan!');
+        setCheckpointForm({
+          nama_warung: '',
+          alamat_warung: '',
+          produk_id: pedagangProdukList[0]?.id ? String(pedagangProdukList[0].id) : '',
+          qty: '1',
+          harga_jual: pedagangProdukList[0]?.harga_jual ? String(pedagangProdukList[0].harga_jual) : '',
+          metode_bayar: 'piutang',
+          catatan: '',
+          latitude: null,
+          longitude: null,
+          akurasi_meter: null,
+          foto_bukti: null
+        });
+        await loadPedagangPortalData(currentUser);
+        await loadCheckpoints(currentUser?.pabrik_id, currentUser?.pedagang_id);
+        setPedagangSubTab('checkpoint_history');
+      } else {
+        showToast(data.error || 'Gagal menyimpan check-point', 'error');
+      }
+    } catch (err) {
+      showToast('Terjadi kesalahan: ' + err.message, 'error');
+    } finally {
+      setCheckpointSubmitting(false);
     }
   };
 
@@ -159,6 +342,8 @@ export default function App() {
         } else if (data.user.role === 'pedagang') {
           setActiveTab('pedagang_portal');
           loadPedagangPortalData(data.user);
+          loadPedagangProduk(data.user.pabrik_id);
+          loadCheckpoints(data.user.pabrik_id, data.user.pedagang_id);
         } else {
           setActiveTab('dashboard');
         }
@@ -261,8 +446,25 @@ export default function App() {
   useEffect(() => {
     if (selectedPabrikId) {
       loadDashboard(selectedPabrikId);
+      if (activeTab === 'checkpoints') {
+        loadCheckpoints(selectedPabrikId);
+      }
     }
-  }, [selectedPabrikId]);
+  }, [selectedPabrikId, activeTab]);
+
+  // Role guarding: Admin Pabrik hanya boleh akses operasional pabrik bersangkutan
+  useEffect(() => {
+    if (currentUser?.role === 'admin_pabrik') {
+      if (currentUser.pabrik_id && String(selectedPabrikId) !== String(currentUser.pabrik_id)) {
+        setSelectedPabrikId(String(currentUser.pabrik_id));
+      }
+      const forbiddenTabs = ['purchases', 'finance', 'reports', 'factories'];
+      if (forbiddenTabs.includes(activeTab)) {
+        setActiveTab('dashboard');
+        showToast('Akses dibatasi. Anda dialihkan ke Dashboard Operasional Pabrik.', 'error');
+      }
+    }
+  }, [activeTab, currentUser, selectedPabrikId]);
 
   const showToast = (message, type = 'success') => {
     setNotification({ message, type });
@@ -785,26 +987,63 @@ export default function App() {
             {currentUser?.role === 'pedagang' ? (
               <>
                 <button
-                  onClick={() => setActiveTab('pedagang_portal')}
+                  onClick={() => {
+                    setActiveTab('pedagang_portal');
+                    setPedagangSubTab('checkpoint_form');
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'pedagang_portal'
+                    activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
-                  <Store className="w-4 h-4" />
-                  <span>Portal Hutang & Setoran</span>
+                  <MapPin className="w-4 h-4 text-emerald-400" />
+                  <span>Check-Point Drop</span>
                 </button>
+
                 <button
-                  onClick={() => setActiveTab('inventory')}
+                  onClick={() => {
+                    setActiveTab('pedagang_portal');
+                    setPedagangSubTab('checkpoint_history');
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'inventory'
+                    activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
                   }`}
                 >
-                  <Boxes className="w-4 h-4" />
-                  <span>Katalog Produk Pabrik</span>
+                  <Camera className="w-4 h-4 text-sky-400" />
+                  <span>Riwayat Drop Warung</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('pedagang_portal');
+                    setPedagangSubTab('kartu_piutang');
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+                >
+                  <Store className="w-4 h-4 text-amber-400" />
+                  <span>Hutang & Setoran</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('pedagang_portal');
+                    setPedagangSubTab('katalog');
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+                >
+                  <Boxes className="w-4 h-4 text-indigo-400" />
+                  <span>Katalog Produk</span>
                 </button>
               </>
             ) : (
@@ -834,6 +1073,18 @@ export default function App() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('checkpoints')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                    activeTab === 'checkpoints'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                  <span>Monitoring Check-Point</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('inventory')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'inventory'
@@ -846,18 +1097,6 @@ export default function App() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('purchases')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'purchases'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Peralatan & Aset</span>
-                </button>
-
-                <button
                   onClick={() => setActiveTab('banking')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'banking'
@@ -866,48 +1105,63 @@ export default function App() {
                   }`}
                 >
                   <Landmark className="w-4 h-4" />
-                  <span>Kas & Perbankan</span>
+                  <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
                 </button>
 
-                <button
-                  onClick={() => setActiveTab('finance')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'finance'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
-                >
-                  <Receipt className="w-4 h-4" />
-                  <span>Laporan Keuangan</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('reports')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'reports'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Cetak Laporan</span>
-                </button>
-
+                {/* Menu Khusus Super Admin (Owner / Konsolidasi Lengkap) */}
                 {currentUser?.role === 'super_admin' && (
-                  <button
-                    onClick={() => {
-                      setActiveTab('factories');
-                      setSelectedPabrikId('all');
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                      activeTab === 'factories'
-                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4" />
-                    <span>Super Admin Pabrik</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setActiveTab('purchases')}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                        activeTab === 'purchases'
+                          ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Peralatan & Aset</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('finance')}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                        activeTab === 'finance'
+                          ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                    >
+                      <Receipt className="w-4 h-4" />
+                      <span>Laporan Keuangan</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('reports')}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                        activeTab === 'reports'
+                          ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Cetak Laporan</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('factories');
+                        setSelectedPabrikId('all');
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
+                        activeTab === 'factories'
+                          ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4" />
+                      <span>Super Admin Pabrik</span>
+                    </button>
+                  </>
                 )}
               </>
             )}
@@ -1031,13 +1285,13 @@ export default function App() {
               </div>
             ) : currentUser?.role === 'admin_pabrik' ? (
               <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 rounded-full text-xs font-bold shadow-sm">
-                <Factory className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>🏭 {currentUser.nama_pabrik || currentFactory?.nama_pabrik}</span>
+                <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Pabrik: {currentUser.nama_pabrik || currentFactory?.nama_pabrik}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 rounded-full text-xs font-bold shadow-sm">
                 <Store className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>🛒 {currentUser?.nama_pedagang || currentUser?.nama}</span>
+                <span>Mitra: {currentUser?.nama_pedagang || currentUser?.nama}</span>
               </div>
             )}
           </div>
@@ -1114,13 +1368,15 @@ export default function App() {
                       </div>
                       <span className="text-xs font-semibold text-slate-500">Kas (Aset Lancar)</span>
                     </div>
-                    <button 
-                      onClick={() => setActiveModal('modal_awal')}
-                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
-                      title="Tambah Modal Kas"
-                    >
-                      <ArrowUpRight className="w-4 h-4" />
-                    </button>
+                    {currentUser?.role === 'super_admin' && (
+                      <button 
+                        onClick={() => setActiveModal('modal_awal')}
+                        className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                        title="Tambah Modal Kas"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">
                     {formatShort(isGlobal ? globalTotals.kas : metrics.kas)}
@@ -3401,142 +3657,862 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB: PORTAL MITRA PEDAGANG */}
-          {activeTab === 'pedagang_portal' && (
+          {/* TAB: MONITORING CHECK-POINT DROP PEDAGANG (ADMIN & PABRIK) */}
+          {activeTab === 'checkpoints' && (
             <div className="space-y-6">
               {/* Header Banner */}
-              <div className="p-6 rounded-3xl bg-gradient-to-r from-[#191a23] via-[#232635] to-[#191a23] text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/5">
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-[#191a23] via-[#242738] to-[#191a23] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/5">
                 <div className="space-y-1">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400 text-xs font-semibold">
-                    <Store className="w-3.5 h-3.5" />
-                    <span>Portal Mitra Pedagang</span>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Monitoring Lapangan</span>
                   </div>
                   <h2 className="text-xl font-black text-white">
-                    Halo, {currentUser?.nama_pedagang || currentUser?.nama}!
+                    Check-Point Drop Kerupuk Pedagang
                   </h2>
                   <p className="text-xs text-slate-300">
-                    Mitra Resmi Rekanan: <strong className="text-amber-300">{currentUser?.nama_pabrik || currentFactory?.nama_pabrik}</strong>
+                    Pemantauan titik drop kerupuk ke warung, verifikasi foto bukti fisik, dan koordinat GPS.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => loadPedagangPortalData(currentUser)}
+                    onClick={() => loadCheckpoints(selectedPabrikId)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-all active:scale-95"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Perbarui Data</span>
+                    <RefreshCw className={`w-3.5 h-3.5 ${checkpointsLoading ? 'animate-spin' : ''}`} />
+                    <span>Segarkan Data</span>
                   </button>
                 </div>
               </div>
 
-              {/* 3 Metric Cards for Pedagang */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="dashboard-card p-5 border-l-4 border-l-rose-500">
-                  <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Utang Belum Lunas</span>
-                  <div className="text-2xl font-extrabold text-rose-600 mb-1">
-                    {formatIDR(pedagangPortalData?.saldoPiutangSaatIni || 0)}
+              {/* KPI Summary Check-Point */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="dashboard-card p-4">
+                  <span className="text-[11px] font-bold text-slate-400 block mb-1">Total Titik Drop</span>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {checkpointsList.length}
                   </div>
-                  
+                  <span className="text-[10px] text-slate-400">Warung teregistrasi</span>
                 </div>
-
-                <div className="dashboard-card p-5 border-l-4 border-l-emerald-500">
-                  <span className="text-xs font-bold text-slate-400 block mb-1">Limit Plafon Kredit</span>
-                  <div className="text-2xl font-extrabold text-slate-800 mb-1">
-                    {formatIDR(pedagangPortalData?.limitPiutang || 0)}
+                <div className="dashboard-card p-4">
+                  <span className="text-[11px] font-bold text-slate-400 block mb-1">Total Bal Terdistribusi</span>
+                  <div className="text-2xl font-black text-emerald-600">
+                    {checkpointsList.reduce((acc, c) => acc + (Number(c.qty) || 0), 0)} Bal
                   </div>
-                  
+                  <span className="text-[10px] text-slate-400">Kerupuk terkirim</span>
                 </div>
-
-                <div className="dashboard-card p-5 border-l-4 border-l-sky-500">
-                  <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Plafon Tersedia</span>
-                  <div className="text-2xl font-extrabold text-sky-600 mb-1">
-                    {formatIDR(pedagangPortalData?.sisaLimit || 0)}
+                <div className="dashboard-card p-4">
+                  <span className="text-[11px] font-bold text-slate-400 block mb-1">Nilai Omset Drop</span>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {formatShort(checkpointsList.reduce((acc, c) => acc + (Number(c.total_jual) || 0), 0))}
                   </div>
-                  
+                  <span className="text-[10px] text-slate-400">Total piutang & tunai</span>
+                </div>
+                <div className="dashboard-card p-4">
+                  <span className="text-[11px] font-bold text-slate-400 block mb-1">Verifikasi GPS & Foto</span>
+                  <div className="text-2xl font-black text-sky-600">
+                    {checkpointsList.filter(c => c.latitude && c.foto_bukti).length} / {checkpointsList.length}
+                  </div>
+                  <span className="text-[10px] text-emerald-500 font-semibold">Tervalidasi Lapangan</span>
                 </div>
               </div>
 
-              {/* Kartu Piutang Table */}
-              <div className="dashboard-card p-6 space-y-4">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900">Riwayat Mutasi & Kartu Piutang</h3>
-                    
+              {/* Search & Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={checkpointSearch}
+                    onChange={(e) => setCheckpointSearch(e.target.value)}
+                    placeholder="Cari warung, pedagang, atau produk..."
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:border-slate-800 text-slate-800 dark:text-white"
+                  />
+                </div>
+                <span className="text-xs text-slate-400 self-end sm:self-auto">
+                  Menampilkan {checkpointsList.filter(c => 
+                    !checkpointSearch || 
+                    c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                    c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                    c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
+                  ).length} rekaman drop
+                </span>
+              </div>
+
+              {/* Checkpoint Feed / Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {checkpointsList
+                  .filter(c => 
+                    !checkpointSearch || 
+                    c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                    c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                    c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
+                  )
+                  .map((cp) => (
+                    <div 
+                      key={cp.id}
+                      className="dashboard-card overflow-hidden flex flex-col justify-between border border-slate-200/80 dark:border-white/10 hover:shadow-lg transition-all"
+                    >
+                      <div>
+                        {/* Photo Thumbnail or Placeholder */}
+                        <div className="relative h-44 w-full bg-slate-100 dark:bg-white/5 overflow-hidden group">
+                          {cp.foto_bukti ? (
+                            <img
+                              src={cp.foto_bukti}
+                              alt={cp.nama_warung}
+                              onClick={() => setSelectedCheckpointPhoto(cp.foto_bukti)}
+                              className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                              <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+                              <span className="text-xs">Foto bukti tidak disertakan</span>
+                            </div>
+                          )}
+
+                          {/* Method Badge & Date Overlay */}
+                          <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm ${
+                              cp.metode_bayar === 'tunai'
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-amber-500 text-white'
+                            }`}>
+                              {cp.metode_bayar === 'tunai' ? 'Bayar Tunai' : 'Titip Bon / Piutang'}
+                            </span>
+                          </div>
+
+                          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-mono">
+                            {cp.tanggal}
+                          </div>
+                        </div>
+
+                        {/* Card Content */}
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <h3 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
+                              {cp.nama_warung}
+                            </h3>
+                            {cp.alamat_warung && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                {cp.alamat_warung}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Detail Drop */}
+                          <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 space-y-1.5 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Pedagang:</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {cp.nama_pedagang}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Pabrik:</span>
+                              <span className="font-medium text-slate-600 dark:text-slate-300">
+                                {cp.nama_pabrik}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Kerupuk:</span>
+                              <span className="font-bold text-emerald-600">
+                                {cp.qty} {cp.satuan || 'Bal'} {cp.nama_produk}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200/60 dark:border-white/10 pt-1.5 font-bold">
+                              <span className="text-slate-800 dark:text-white">Total Tagihan:</span>
+                              <span className="text-slate-900 dark:text-white">
+                                {formatIDR(cp.total_jual)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {cp.catatan && (
+                            <p className="text-[11px] text-slate-500 italic bg-amber-50/50 dark:bg-amber-950/20 p-2 rounded-lg border border-amber-200/40">
+                              "{cp.catatan}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Card Footer: GPS Location Link */}
+                      <div className="p-4 pt-0 border-t border-slate-100 dark:border-white/5 mt-2 flex items-center justify-between text-xs">
+                        {cp.latitude && cp.longitude ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${cp.latitude},${cp.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>Buka di Google Maps</span>
+                            <ExternalLink className="w-3 h-3 ml-0.5" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] flex items-center gap-1">
+                            <Navigation className="w-3 h-3" />
+                            <span>GPS tidak terdeteksi</span>
+                          </span>
+                        )}
+
+                        {cp.foto_bukti && (
+                          <button
+                            onClick={() => setSelectedCheckpointPhoto(cp.foto_bukti)}
+                            className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline"
+                          >
+                            Lihat Foto HD
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {checkpointsList.length === 0 && !checkpointsLoading && (
+                <div className="dashboard-card p-12 text-center text-slate-400 space-y-2">
+                  <MapPin className="w-12 h-12 mx-auto opacity-30 text-emerald-500" />
+                  <h4 className="font-bold text-slate-700 dark:text-slate-200">Belum Ada Rekaman Check-Point</h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Pedagang dapat mencatat check-point drop kerupuk ke warung lengkap dengan foto dan titik koordinat GPS melalui aplikasi pedagang.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: APLIKASI PEDAGANG (CAPACITOR ANDROID READY) */}
+          {activeTab === 'pedagang_portal' && (
+            <div className="space-y-5 max-w-2xl mx-auto pb-16">
+              {/* Pedagang Mobile App Header */}
+              <div className="p-5 rounded-3xl bg-gradient-to-r from-[#191a23] via-[#242738] to-[#191a23] text-white shadow-xl flex items-center justify-between border border-white/5">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold mb-1">
+                    <Store className="w-3 h-3" />
+                    <span>Aplikasi Android Pedagang</span>
                   </div>
+                  <h2 className="text-lg font-black text-white">
+                    {currentUser?.nama_pedagang || currentUser?.nama}
+                  </h2>
+                  <p className="text-[11px] text-slate-300">
+                    Pabrik: <strong className="text-amber-300">{currentUser?.nama_pabrik || currentFactory?.nama_pabrik}</strong>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
+                    onClick={() => {
+                      loadPedagangPortalData(currentUser);
+                      loadPedagangProduk(currentUser?.pabrik_id);
+                      loadCheckpoints(currentUser?.pabrik_id, currentUser?.pedagang_id);
+                    }}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
+                    title="Segarkan data"
                   >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Cetak Kartu</span>
+                    <RefreshCw className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b text-slate-400 uppercase tracking-wider text-[10px]">
-                        <th className="pb-3">Tanggal</th>
-                        <th className="pb-3">No. Bukti / Transaksi</th>
-                        <th className="pb-3 text-right">Barang Diterima (Debit)</th>
-                        <th className="pb-3 text-right">Setoran Uang (Kredit)</th>
-                        <th className="pb-3 text-right">Saldo Sisa Utang</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {(!pedagangPortalData?.history || pedagangPortalData.history.length === 0) ? (
-                        <tr>
-                          <td colSpan="5" className="py-8 text-center text-slate-400">
-                            Belum ada riwayat transaksi tercatat
-                          </td>
-                        </tr>
+              {/* Sub-Tab Navigation Bar (Mobile Touch Friendly) */}
+              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-200/70 dark:bg-[#1a1b24] rounded-2xl text-xs font-bold text-center">
+                <button
+                  onClick={() => setPedagangSubTab('checkpoint_form')}
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
+                    pedagangSubTab === 'checkpoint_form'
+                      ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] sm:text-xs">Drop Kerupuk</span>
+                </button>
+
+                <button
+                  onClick={() => setPedagangSubTab('checkpoint_history')}
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
+                    pedagangSubTab === 'checkpoint_history'
+                      ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Camera className="w-4 h-4 text-sky-500" />
+                  <span className="text-[10px] sm:text-xs">Riwayat Drop</span>
+                </button>
+
+                <button
+                  onClick={() => setPedagangSubTab('kartu_piutang')}
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
+                    pedagangSubTab === 'kartu_piutang'
+                      ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Store className="w-4 h-4 text-amber-500" />
+                  <span className="text-[10px] sm:text-xs">Hutang</span>
+                </button>
+
+                <button
+                  onClick={() => setPedagangSubTab('katalog')}
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
+                    pedagangSubTab === 'katalog'
+                      ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Boxes className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] sm:text-xs">Katalog</span>
+                </button>
+              </div>
+
+              {/* SUBTAB 1: FORM CHECK-POINT DROP (GPS & KAMERA) */}
+              {pedagangSubTab === 'checkpoint_form' && (
+                <div className="dashboard-card p-6 space-y-5">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-emerald-500" />
+                      Catat Check-Point Drop ke Warung
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Gunakan GPS dan Kamera HP untuk bukti fisik drop kerupuk di warung langganan.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmitCheckpoint} className="space-y-4">
+                    {/* Nama Warung */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Nama Warung / Toko Rekanan *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={checkpointForm.nama_warung}
+                        onChange={(e) => setCheckpointForm({ ...checkpointForm, nama_warung: e.target.value })}
+                        placeholder="Contoh: Warung Bu Siti / Toko Barokah"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Alamat Warung */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Alamat / Patokan Warung
+                      </label>
+                      <input
+                        type="text"
+                        value={checkpointForm.alamat_warung}
+                        onChange={(e) => setCheckpointForm({ ...checkpointForm, alamat_warung: e.target.value })}
+                        placeholder="Contoh: Jl. Nusantara No. 12 dekat gang masjid"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Pilihan Produk Kerupuk Pabrik */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                          Pilihan Produk Kerupuk *
+                        </label>
+                        <select
+                          value={checkpointForm.produk_id}
+                          onChange={(e) => {
+                            const pId = e.target.value;
+                            const found = pedagangProdukList.find(p => String(p.id) === String(pId));
+                            setCheckpointForm({
+                              ...checkpointForm,
+                              produk_id: pId,
+                              harga_jual: found ? String(found.harga_jual) : checkpointForm.harga_jual
+                            });
+                          }}
+                          className="w-full px-3 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                        >
+                          {pedagangProdukList.length === 0 ? (
+                            <option value="">Memuat produk pabrik...</option>
+                          ) : (
+                            pedagangProdukList.map(p => (
+                              <option key={p.id} value={String(p.id)}>
+                                {p.nama_produk} (Stok: {p.stok} {p.satuan || 'Bal'})
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Jumlah Drop (Bal) */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                          Jumlah Drop (Bal) *
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const curr = Number(checkpointForm.qty) || 1;
+                              if (curr > 1) setCheckpointForm({ ...checkpointForm, qty: String(curr - 1) });
+                            }}
+                            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/10 font-black text-lg text-slate-700 dark:text-white flex items-center justify-center active:scale-95"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            required
+                            value={checkpointForm.qty}
+                            onChange={(e) => setCheckpointForm({ ...checkpointForm, qty: e.target.value })}
+                            className="flex-1 text-center py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const curr = Number(checkpointForm.qty) || 0;
+                              setCheckpointForm({ ...checkpointForm, qty: String(curr + 1) });
+                            }}
+                            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/10 font-black text-lg text-slate-700 dark:text-white flex items-center justify-center active:scale-95"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Harga Jual & Total Tagihan */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex items-center justify-between">
+                      <div>
+                        <span className="text-[11px] text-slate-400 block">Harga Satuan / Bal:</span>
+                        <input
+                          type="number"
+                          value={checkpointForm.harga_jual}
+                          onChange={(e) => setCheckpointForm({ ...checkpointForm, harga_jual: e.target.value })}
+                          className="w-28 text-xs font-bold bg-white dark:bg-white/10 px-2 py-1 rounded border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] text-slate-400 block">Total Tagihan:</span>
+                        <span className="text-base font-black text-emerald-600">
+                          {formatIDR((Number(checkpointForm.qty) || 0) * (Number(checkpointForm.harga_jual) || 0))}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Metode Pembayaran */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Metode Pembayaran Warung
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCheckpointForm({ ...checkpointForm, metode_bayar: 'piutang' })}
+                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                            checkpointForm.metode_bayar === 'piutang'
+                              ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <Receipt className="w-4 h-4" />
+                          <span>Titip Bon / Piutang</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCheckpointForm({ ...checkpointForm, metode_bayar: 'tunai' })}
+                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                            checkpointForm.metode_bayar === 'tunai'
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <Coins className="w-4 h-4" />
+                          <span>Bayar Tunai Langsung</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* FITUR 1: LOKASI GPS (CAPACITOR GEOLOCATION) */}
+                    <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2 bg-slate-50/50 dark:bg-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4 text-emerald-500" />
+                          Titik Lokasi GPS Warung
+                        </span>
+                        {checkpointForm.latitude && (
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                            Terkunci (Akurasi: +/- {checkpointForm.akurasi_meter || 10}m)
+                          </span>
+                        )}
+                      </div>
+
+                      {checkpointForm.latitude && checkpointForm.longitude ? (
+                        <div className="p-3 bg-white dark:bg-[#14151c] rounded-xl border border-emerald-300 dark:border-emerald-700/60 flex items-center justify-between text-xs">
+                          <div className="space-y-0.5">
+                            <p className="font-mono text-slate-800 dark:text-slate-200">
+                              Lat: {checkpointForm.latitude.toFixed(6)}, Long: {checkpointForm.longitude.toFixed(6)}
+                            </p>
+                            <a
+                              href={`https://www.google.com/maps?q=${checkpointForm.latitude},${checkpointForm.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-600 hover:underline font-semibold inline-flex items-center gap-1 text-[11px]"
+                            >
+                              <span>Buka Peta Google Maps</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleGetDropLocation}
+                            disabled={isGettingLocation}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 text-xs font-semibold text-slate-700 dark:text-white transition-all"
+                          >
+                            Perbarui GPS
+                          </button>
+                        </div>
                       ) : (
-                        pedagangPortalData.history.map((h, i) => (
-                          <tr key={i} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-3 font-mono text-slate-600">{h.tanggal}</td>
-                            <td className="py-3">
-                              <span className="font-bold text-slate-900 block">{h.nomor_bukti}</span>
-                              <span className="text-[11px] text-slate-400">{h.keterangan || h.nama_produk}</span>
-                            </td>
-                            <td className="py-3 text-right font-semibold text-rose-500">
-                              {h.penambahan_piutang > 0 ? formatIDR(h.penambahan_piutang) : '-'}
-                            </td>
-                            <td className="py-3 text-right font-semibold text-emerald-600">
-                              {h.pengurangan_piutang > 0 ? formatIDR(h.pengurangan_piutang) : '-'}
-                            </td>
-                            <td className="py-3 text-right font-extrabold text-slate-900">
-                              {formatIDR(h.saldo_berjalan)}
-                            </td>
-                          </tr>
-                        ))
+                        <button
+                          type="button"
+                          onClick={handleGetDropLocation}
+                          disabled={isGettingLocation}
+                          className="w-full py-3 px-4 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-300 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-98"
+                        >
+                          <Navigation className={`w-4 h-4 ${isGettingLocation ? 'animate-spin' : ''}`} />
+                          <span>{isGettingLocation ? 'Membaca Satelit GPS...' : 'Kunci Titik Lokasi GPS Sekarang'}</span>
+                        </button>
                       )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                    </div>
 
-              {/* Bank Account & Payment Instructions */}
-              <div className="dashboard-card p-6 bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-200/60 rounded-3xl space-y-3">
-                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-amber-600" />
-                  Rekening Pembayaran & Setoran Pabrik
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Setoran tunai dapat diserahkan langsung ke supir drop barang atau ditransfer via rekening resmi pabrik:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <div className="p-3 bg-white rounded-2xl border border-amber-200/50 shadow-sm">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Bank BCA</span>
-                    <span className="text-sm font-black font-mono text-slate-900 block">8830-192-881</span>
-                    <span className="text-xs text-slate-500">a.n PT Raja Kerupuk Nusantara</span>
+                    {/* FITUR 2: FOTO BUKTI DROP (CAPACITOR CAMERA) */}
+                    <div className="p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2 bg-slate-50/50 dark:bg-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-sky-500" />
+                          Foto Bukti Drop Kerupuk di Warung
+                        </span>
+                        {checkpointForm.foto_bukti && (
+                          <span className="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
+                            Foto Tersedia
+                          </span>
+                        )}
+                      </div>
+
+                      {checkpointForm.foto_bukti ? (
+                        <div className="space-y-2">
+                          <div className="relative h-44 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-black">
+                            <img
+                              src={checkpointForm.foto_bukti}
+                              alt="Pratinjau Foto Drop"
+                              className="w-full h-full object-contain"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setCheckpointForm({ ...checkpointForm, foto_bukti: null })}
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white hover:bg-rose-700 shadow-md transition-all"
+                              title="Hapus foto"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleTakeDropPhoto}
+                            disabled={isTakingPhoto}
+                            className="w-full py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 text-slate-800 dark:text-white rounded-xl text-xs font-bold transition-all"
+                          >
+                            Ambil Ulang Foto
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleTakeDropPhoto}
+                          disabled={isTakingPhoto}
+                          className="w-full py-3 px-4 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 border border-sky-300 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-98"
+                        >
+                          <Camera className={`w-4 h-4 ${isTakingPhoto ? 'animate-spin' : ''}`} />
+                          <span>{isTakingPhoto ? 'Membuka Kamera...' : 'Buka Kamera / Ambil Foto Bukti Warung'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Catatan Tambahan */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Catatan Drop (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={checkpointForm.catatan}
+                        onChange={(e) => setCheckpointForm({ ...checkpointForm, catatan: e.target.value })}
+                        placeholder="Contoh: Titip 2 kaleng kerupuk putih, uang dibayar sabtu depan"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Tombol Simpan Drop */}
+                    <button
+                      type="submit"
+                      disabled={checkpointSubmitting}
+                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-sm transition-all shadow-lg shadow-emerald-600/30 active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {checkpointSubmitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Menyimpan Check-Point...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>Kirim Check-Point Drop Kerupuk</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* SUBTAB 2: RIWAYAT DROP PEDAGANG */}
+              {pedagangSubTab === 'checkpoint_history' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      Riwayat Check-Point Drop Saya
+                    </h3>
+                    <button
+                      onClick={() => setPedagangSubTab('checkpoint_form')}
+                      className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-sm transition-all"
+                    >
+                      + Catat Drop Baru
+                    </button>
                   </div>
-                  <div className="p-3 bg-white rounded-2xl border border-amber-200/50 shadow-sm">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Konfirmasi Setoran</span>
-                    <span className="text-sm font-bold text-emerald-700 block">+62 812-3456-7890</span>
-                    <span className="text-xs text-slate-500">WhatsApp Admin Keuangan Pabrik</span>
+
+                  {checkpointsList.length === 0 ? (
+                    <div className="dashboard-card p-10 text-center text-slate-400 space-y-2">
+                      <Camera className="w-10 h-10 mx-auto opacity-30 text-sky-500" />
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Belum Ada Riwayat Drop</p>
+                      <p className="text-xs">Mulai catat check-point drop kerupuk pertama Anda ke warung.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {checkpointsList.map((cp) => (
+                        <div
+                          key={cp.id}
+                          className="dashboard-card p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              onClick={() => cp.foto_bukti && setSelectedCheckpointPhoto(cp.foto_bukti)}
+                              className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/10 shrink-0 border border-slate-200 cursor-pointer"
+                            >
+                              {cp.foto_bukti ? (
+                                <img src={cp.foto_bukti} alt={cp.nama_warung} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <ImageIcon className="w-5 h-5 opacity-40" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                                  {cp.nama_warung}
+                                </h4>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                  cp.metode_bayar === 'tunai'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {cp.metode_bayar === 'tunai' ? 'Tunai' : 'Bon'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500">{cp.alamat_warung || 'Alamat warung'}</p>
+                              <p className="text-[11px] font-semibold text-emerald-600 mt-0.5">
+                                {cp.qty} Bal {cp.nama_produk} • {formatIDR(cp.total_jual)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto text-xs gap-1 border-t sm:border-t-0 pt-2 sm:pt-0">
+                            <span className="font-mono text-slate-400 text-[11px]">{cp.tanggal}</span>
+                            {cp.latitude && cp.longitude ? (
+                              <a
+                                href={`https://www.google.com/maps?q=${cp.latitude},${cp.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:underline"
+                              >
+                                <MapPin className="w-3 h-3" />
+                                <span>Peta GPS</span>
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-slate-400">Tanpa GPS</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SUBTAB 3: HUTANG & SETORAN PEDAGANG */}
+              {pedagangSubTab === 'kartu_piutang' && (
+                <div className="space-y-5">
+                  {/* 3 Metric Cards for Pedagang */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="dashboard-card p-4 border-l-4 border-l-rose-500">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Utang Belum Lunas</span>
+                      <div className="text-xl font-extrabold text-rose-600">
+                        {formatIDR(pedagangPortalData?.saldoPiutangSaatIni || 0)}
+                      </div>
+                    </div>
+
+                    <div className="dashboard-card p-4 border-l-4 border-l-emerald-500">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">Limit Plafon Kredit</span>
+                      <div className="text-xl font-extrabold text-slate-800 dark:text-white">
+                        {formatIDR(pedagangPortalData?.limitPiutang || 0)}
+                      </div>
+                    </div>
+
+                    <div className="dashboard-card p-4 border-l-4 border-l-sky-500">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">Sisa Plafon Tersedia</span>
+                      <div className="text-xl font-extrabold text-sky-600">
+                        {formatIDR(pedagangPortalData?.sisaLimit || 0)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Kartu Piutang Table */}
+                  <div className="dashboard-card p-5 space-y-4">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-white">Riwayat Mutasi & Kartu Piutang</h3>
+                        <p className="text-[11px] text-slate-400">Catatan penerimaan kerupuk dan setoran pembayaran</p>
+                      </div>
+                      <button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Cetak</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b text-slate-400 uppercase tracking-wider text-[10px]">
+                            <th className="pb-3">Tanggal</th>
+                            <th className="pb-3">No. Bukti / Transaksi</th>
+                            <th className="pb-3 text-right">Barang Diterima</th>
+                            <th className="pb-3 text-right">Setoran Uang</th>
+                            <th className="pb-3 text-right">Sisa Utang</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                          {(!pedagangPortalData?.history || pedagangPortalData.history.length === 0) ? (
+                            <tr>
+                              <td colSpan="5" className="py-8 text-center text-slate-400">
+                                Belum ada riwayat transaksi tercatat
+                              </td>
+                            </tr>
+                          ) : (
+                            pedagangPortalData.history.map((h, i) => (
+                              <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="py-3 font-mono text-slate-600 dark:text-slate-400">{h.tanggal}</td>
+                                <td className="py-3">
+                                  <span className="font-bold text-slate-900 dark:text-white block">{h.nomor_bukti}</span>
+                                  <span className="text-[11px] text-slate-400">{h.keterangan || h.nama_produk}</span>
+                                </td>
+                                <td className="py-3 text-right font-semibold text-rose-500">
+                                  {h.penambahan_piutang > 0 ? formatIDR(h.penambahan_piutang) : '-'}
+                                </td>
+                                <td className="py-3 text-right font-semibold text-emerald-600">
+                                  {h.pengurangan_piutang > 0 ? formatIDR(h.pengurangan_piutang) : '-'}
+                                </td>
+                                <td className="py-3 text-right font-extrabold text-slate-900 dark:text-white">
+                                  {formatIDR(h.saldo_berjalan)}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Bank Account & Payment Instructions */}
+                  <div className="dashboard-card p-5 bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-200/60 rounded-3xl space-y-3">
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-amber-600" />
+                      Rekening Resmi Setoran Pabrik
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="p-3 bg-white dark:bg-[#14151c] rounded-2xl border border-amber-200/50 shadow-sm">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Bank BCA</span>
+                        <span className="text-sm font-black font-mono text-slate-900 dark:text-white block">8830-192-881</span>
+                        <span className="text-xs text-slate-500">a.n PT Raja Kerupuk Nusantara</span>
+                      </div>
+                      <div className="p-3 bg-white dark:bg-[#14151c] rounded-2xl border border-amber-200/50 shadow-sm">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">WhatsApp Admin Pabrik</span>
+                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 block">+62 812-3456-7890</span>
+                        <span className="text-xs text-slate-500">Kirim bukti transfer</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* SUBTAB 4: KATALOG PRODUK KERUPUK */}
+              {pedagangSubTab === 'katalog' && (
+                <div className="space-y-4">
+                  <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      Katalog Kerupuk Pabrik Rekanan
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Daftar jenis kerupuk yang siap didistribusikan ke warung-warung rekanan.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {pedagangProdukList.map((prod) => (
+                      <div key={prod.id} className="dashboard-card p-4 space-y-2 border border-slate-200 dark:border-white/10">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                              {prod.kategori || 'Kerupuk'}
+                            </span>
+                            <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">
+                              {prod.nama_produk}
+                            </h4>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-400">
+                            Stok: <strong className="text-slate-800 dark:text-slate-200">{prod.stok} {prod.satuan || 'Bal'}</strong>
+                          </span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Harga Drop / Bal:</span>
+                          <span className="text-base font-black text-emerald-600">
+                            {formatIDR(prod.harga_jual)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCheckpointForm(prev => ({
+                              ...prev,
+                              produk_id: String(prod.id),
+                              harga_jual: String(prod.harga_jual)
+                            }));
+                            setPedagangSubTab('checkpoint_form');
+                          }}
+                          className="w-full mt-2 py-2 bg-slate-900 dark:bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-black transition-all"
+                        >
+                          Pilih untuk Drop ke Warung
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3546,6 +4522,33 @@ export default function App() {
       {/* ========================================================= */}
       {/* MODAL DIALOGS FOR DOUBLE-ENTRY OPERATIONS                 */}
       {/* ========================================================= */}
+
+      {/* MODAL ZOOM FOTO BUKTI DROP */}
+      {selectedCheckpointPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="relative max-w-2xl w-full bg-[#191a23] rounded-3xl overflow-hidden shadow-2xl border border-white/10 p-3 space-y-3">
+            <div className="flex items-center justify-between px-2 pt-1">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-emerald-400" />
+                Foto Bukti Fisik Drop Kerupuk di Warung
+              </span>
+              <button
+                onClick={() => setSelectedCheckpointPhoto(null)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-hidden rounded-2xl bg-black flex items-center justify-center">
+              <img
+                src={selectedCheckpointPhoto}
+                alt="Bukti Drop Warung"
+                className="max-h-[75vh] w-auto object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL 1: SETOR MODAL AWAL */}
       {activeModal === 'modal_awal' && (

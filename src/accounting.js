@@ -298,10 +298,10 @@ async function distribusiBarang(pabrikId, { pedagangId, produkId, qty, hargaJual
   });
 
   // Kurangi stok
-  await query(`UPDATE tabel_produk SET stok = stok - ? WHERE id = ?`, [qty, produkId]);
+  await query(`UPDATE tabel_produk SET stok = ? WHERE id = ?`, [stokTersedia - qty, produkId]);
 
   // Tambah piutang pedagang
-  await query(`UPDATE tabel_pedagang SET saldo_piutang = saldo_piutang + ? WHERE id = ?`, [totalJual, pedagangId]);
+  await query(`UPDATE tabel_pedagang SET saldo_piutang = ? WHERE id = ?`, [proyeksiPiutang, pedagangId]);
 
   // Simpan record distribusi
   await query(`
@@ -349,7 +349,8 @@ async function setorPembayaranPedagang(pabrikId, { pedagangId, nominal, tanggal,
   });
 
   // Kurangi saldo piutang pedagang
-  await query(`UPDATE tabel_pedagang SET saldo_piutang = GREATEST(0, saldo_piutang - ?) WHERE id = ?`, [nominal, pedagangId]);
+  const sisaPiutangBaru = Math.max(0, (Number(pedagang.saldo_piutang) || 0) - nominal);
+  await query(`UPDATE tabel_pedagang SET saldo_piutang = ? WHERE id = ?`, [sisaPiutangBaru, pedagangId]);
 
   // Simpan riwayat setoran
   await query(`
