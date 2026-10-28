@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Raja Kerupuk Pedagang</string>
+    <string name="title_activity_main">Raja Kerupuk Pedagang</string>
+    <string name="package_name">id.rajakerupuk.pedagang</string>
+    <string name="custom_url_scheme">id.rajakerupuk.pedagang</string>
+</resources>

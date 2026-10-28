@@ -3899,6 +3899,15 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <a
+                    href="/apk/raja-kerupuk-pedagang.apk"
+                    download="raja-kerupuk-pedagang.apk"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all active:scale-95 shadow-sm"
+                    title="Unduh file APK Android"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Unduh APK</span>
+                  </a>
                   <button
                     onClick={() => {
                       loadPedagangPortalData(currentUser);
