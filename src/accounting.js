@@ -1,4 +1,4 @@
-const { query, queryOne, queryAll } = require('./supabase');
+const { query, queryOne, queryAll, postgrestRequest } = require('./supabase');
 
 // Standard Chart of Accounts (COA) Template
 const DEFAULT_COA = [
@@ -587,6 +587,45 @@ async function getNeraca(pabrikId, asOfDate) {
 
 // 3. Jurnal Umum
 async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {}) {
+  try {
+    let endpoint = `tabel_jurnal_transaksi?select=*,tabel_pabrik(nama_pabrik),tabel_jurnal_detail(*,tabel_akun_perkiraan(*))&order=tanggal.desc,id.desc&limit=${limit}`;
+    if (pabrikId && pabrikId !== 'all') {
+      endpoint += `&pabrik_id=eq.${Number(pabrikId)}`;
+    }
+    if (startDate) {
+      endpoint += `&tanggal=gte.${startDate}`;
+    }
+    if (endDate) {
+      endpoint += `&tanggal=lte.${endDate}`;
+    }
+
+    const records = await postgrestRequest(endpoint);
+    if (Array.isArray(records)) {
+      return records.map(j => ({
+        id: j.id,
+        pabrik_id: j.pabrik_id,
+        nama_pabrik: j.tabel_pabrik?.nama_pabrik || 'Pabrik',
+        tanggal: j.tanggal,
+        nomor_bukti: j.nomor_bukti,
+        tipe_transaksi: j.tipe_transaksi,
+        referensi: j.referensi,
+        keterangan: j.keterangan,
+        total_nominal: Number(j.total_nominal) || 0,
+        details: Array.isArray(j.tabel_jurnal_detail) ? j.tabel_jurnal_detail.map(d => ({
+          detail_id: d.id,
+          akun_id: d.akun_id,
+          kode_akun: d.tabel_akun_perkiraan?.kode_akun || '',
+          nama_akun: d.tabel_akun_perkiraan?.nama_akun || '',
+          debit: Number(d.debit) || 0,
+          kredit: Number(d.kredit) || 0,
+          catatan: d.catatan
+        })) : []
+      }));
+    }
+  } catch (err) {
+    console.warn('Fallback direct query getJurnalUmum:', err.message);
+  }
+
   let where = 'WHERE 1=1';
   const params = [];
 
@@ -631,9 +670,10 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
 
   const journalsMap = new Map();
   for (const r of rows) {
-    if (!journalsMap.has(r.jurnal_id)) {
-      journalsMap.set(r.jurnal_id, {
-        id: r.jurnal_id,
+    const jId = r.jurnal_id || r.id;
+    if (!journalsMap.has(jId)) {
+      journalsMap.set(jId, {
+        id: jId,
         pabrik_id: r.pabrik_id,
         nama_pabrik: r.nama_pabrik,
         tanggal: r.tanggal,
@@ -645,15 +685,17 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
         details: []
       });
     }
-    journalsMap.get(r.jurnal_id).details.push({
-      detail_id: r.detail_id,
-      akun_id: r.akun_id,
-      kode_akun: r.kode_akun,
-      nama_akun: r.nama_akun,
-      debit: Number(r.debit) || 0,
-      kredit: Number(r.kredit) || 0,
-      catatan: r.catatan
-    });
+    if (r.detail_id || r.akun_id) {
+      journalsMap.get(jId).details.push({
+        detail_id: r.detail_id,
+        akun_id: r.akun_id,
+        kode_akun: r.kode_akun,
+        nama_akun: r.nama_akun,
+        debit: Number(r.debit) || 0,
+        kredit: Number(r.kredit) || 0,
+        catatan: r.catatan
+      });
+    }
   }
 
   return Array.from(journalsMap.values());

@@ -101,8 +101,12 @@ async function fallbackPostgrest(sql, params = []) {
 
   // 1. SELECT query
   if (upper.startsWith('SELECT')) {
-    const tableMatch = trimmed.match(/FROM\s+([a-zA-Z0-9_]+)/i);
+    const tableMatch = trimmed.match(/FROM\s+([a-zA-Z0-9_]+)(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?/i);
     const table = tableMatch ? tableMatch[1] : null;
+    let tableAlias = tableMatch && tableMatch[2] ? tableMatch[2].toLowerCase() : null;
+    if (tableAlias && ['where', 'join', 'left', 'right', 'inner', 'order', 'group', 'limit', 'on'].includes(tableAlias)) {
+      tableAlias = null;
+    }
 
     if (table) {
       // Build query string
@@ -119,11 +123,18 @@ async function fallbackPostgrest(sql, params = []) {
           const orTokens = whereClause.split(/\s+OR\s+/i);
           const orFilterParts = [];
           for (const token of orTokens) {
-            const m = token.match(/(?:LOWER\s*\(\s*(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\)|(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
+            const trimmedToken = token.trim();
+            if (trimmedToken === '1=1' || trimmedToken === '1 = 1' || trimmedToken === 'true') continue;
+            const m = token.match(/(?:LOWER\s*\(\s*(?:([a-zA-Z0-9_]+)\.)?([a-zA-Z0-9_]+)\s*\)|(?:([a-zA-Z0-9_]+)\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
             if (m) {
-              const col = m[1] || m[2];
-              const val = m[4].trim().replace(/^['"]|['"]$/g, '');
-              if (col && val && val !== '1=1') {
+              const colAlias = (m[1] || m[3] || '').toLowerCase();
+              const col = m[2] || m[4];
+              if (col === '1') continue;
+              if (colAlias && tableAlias && colAlias !== tableAlias && colAlias !== table.toLowerCase()) {
+                continue;
+              }
+              const val = m[6].trim().replace(/^['"]|['"]$/g, '');
+              if (col && val) {
                 orFilterParts.push(`${col}.ilike.${val}`);
               }
             }
@@ -135,12 +146,19 @@ async function fallbackPostgrest(sql, params = []) {
           // 1B. Klausa WHERE dengan AND / kondisi tunggal
           const conds = whereClause.split(/\s+AND\s+/i);
           for (const cond of conds) {
-            const m = cond.match(/(?:LOWER\s*\(\s*(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\)|(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
+            const trimmedCond = cond.trim();
+            if (trimmedCond === '1=1' || trimmedCond === '1 = 1' || trimmedCond === 'true') continue;
+            const m = cond.match(/(?:LOWER\s*\(\s*(?:([a-zA-Z0-9_]+)\.)?([a-zA-Z0-9_]+)\s*\)|(?:([a-zA-Z0-9_]+)\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
             if (m) {
-              const col = m[1] || m[2];
-              const isLower = Boolean(m[1]) || m[3].toUpperCase() === 'ILIKE';
-              const val = m[4].trim().replace(/^['"]|['"]$/g, '');
-              if (col && val && val !== '1=1') {
+              const colAlias = (m[1] || m[3] || '').toLowerCase();
+              const col = m[2] || m[4];
+              if (col === '1') continue;
+              if (colAlias && tableAlias && colAlias !== tableAlias && colAlias !== table.toLowerCase()) {
+                continue;
+              }
+              const isLower = Boolean(m[1] || m[3]) || m[5].toUpperCase() === 'ILIKE';
+              const val = m[6].trim().replace(/^['"]|['"]$/g, '');
+              if (col && val) {
                 if (isLower) {
                   qs += `&${col}=ilike.${encodeURIComponent(val)}`;
                 } else {
@@ -152,14 +170,27 @@ async function fallbackPostgrest(sql, params = []) {
         }
       }
 
-      // Check ORDER BY
-      const orderMatch = trimmed.match(/ORDER\s+BY\s+([a-zA-Z0-9_., ]+)(?:\s+LIMIT|\s*;|$)/i);
+      // Check ORDER BY (mendukung multi-kolom seperti ORDER BY tanggal DESC, id DESC)
+      const orderMatch = trimmed.match(/ORDER\s+BY\s+([a-zA-Z0-9_., ]+?)(?:\s+LIMIT|\s*;|$)/i);
       if (orderMatch) {
         const orderPart = orderMatch[1].trim();
-        const [col, dir] = orderPart.split(/\s+/);
-        const cleanCol = col.split('.').pop();
-        const cleanDir = dir && dir.toUpperCase() === 'DESC' ? 'desc' : 'asc';
-        qs += `&order=${cleanCol}.${cleanDir}`;
+        const clauses = orderPart.split(',').map(s => s.trim()).filter(Boolean);
+        const orderTokens = [];
+        for (const clause of clauses) {
+          const parts = clause.split(/\s+/);
+          const rawCol = parts[0];
+          const colParts = rawCol.split('.');
+          const colAlias = colParts.length > 1 ? colParts[0].trim().toLowerCase() : null;
+          const col = colParts.pop().trim();
+          if (colAlias && tableAlias && colAlias !== tableAlias && colAlias !== table.toLowerCase()) {
+            continue;
+          }
+          const dir = parts[1] && parts[1].toUpperCase() === 'DESC' ? 'desc' : 'asc';
+          orderTokens.push(`${col}.${dir}`);
+        }
+        if (orderTokens.length > 0) {
+          qs += `&order=${orderTokens.join(',')}`;
+        }
       }
 
       // Check LIMIT
