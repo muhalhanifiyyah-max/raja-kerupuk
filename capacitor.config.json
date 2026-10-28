@@ -7,6 +7,12 @@
     "cleartext": true
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#0f1015",
+      "androidSplashResourceName": "splash"
+    },
     "Camera": {
       "permissions": ["camera", "photos"]
     },

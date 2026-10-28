@@ -1454,13 +1454,15 @@ export default function App() {
                       </div>
                       <span className="text-xs font-semibold text-slate-500">Laba Bersih</span>
                     </div>
-                    <button 
-                      onClick={() => setActiveTab('finance')}
-                      className="text-slate-400 hover:text-slate-700 transition-colors p-1"
-                      title="Lihat Laporan Laba Rugi"
-                    >
-                      <ArrowUpRight className="w-4 h-4" />
-                    </button>
+                    {currentUser?.role === 'super_admin' && (
+                      <button 
+                        onClick={() => setActiveTab('finance')}
+                        className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                        title="Lihat Laporan Laba Rugi"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="text-2xl font-extrabold tracking-tight text-emerald-600 mb-1">
                     {formatShort(isGlobal ? globalTotals.labaBersih : metrics.labaBersih)}
@@ -1581,113 +1583,181 @@ export default function App() {
                   })()}
                 </div>
 
-                {/* Middle Right: Completed Accuracy & Radial Gauge (Exact match) */}
-                <div className="dashboard-card p-6 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-base text-slate-900">Keseimbangan Neraca</h3>
-                    <button className="text-slate-400 hover:text-slate-700">
-                      <MoreVertical className="w-4 h-4" />
+                {/* Middle Right: Completed Accuracy for Super Admin, or Operational Overview for Admin Pabrik */}
+                {currentUser?.role === 'super_admin' ? (
+                  <div className="dashboard-card p-6 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white">Keseimbangan Neraca</h3>
+                      <button className="text-slate-400 hover:text-slate-700">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Top composition badges */}
+                    <div className="grid grid-cols-3 gap-2 py-2">
+                      <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-xl text-center">
+                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Kas
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                          {metrics.totalAset > 0 ? Math.round((metrics.kas / metrics.totalAset) * 100) : 0}%
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-xl text-center">
+                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          Piutang
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                          {metrics.totalAset > 0 ? Math.round((metrics.piutang / metrics.totalAset) * 100) : 0}%
+                        </span>
+                      </div>
+
+                      <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-xl text-center">
+                        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          Persediaan
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white">
+                          {metrics.totalAset > 0 ? Math.round((metrics.persediaan / metrics.totalAset) * 100) : 0}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Semi-circular gauge meter */}
+                    <div className="relative flex flex-col items-center justify-center py-4">
+                      <svg viewBox="0 0 200 120" className="w-48 overflow-visible">
+                        {Array.from({ length: 35 }).map((_, i) => {
+                          const angle = Math.PI + (i / 34) * Math.PI;
+                          const r1 = 70;
+                          const r2 = 82;
+                          const x1 = 100 + r1 * Math.cos(angle);
+                          const y1 = 105 + r1 * Math.sin(angle);
+                          const x2 = 100 + r2 * Math.cos(angle);
+                          const y2 = 105 + r2 * Math.sin(angle);
+                          
+                          let color = '#10b981';
+                          if (i < 8) color = '#f43f5e';
+                          else if (i < 15) color = '#fbbf24';
+                          else if (i < 24) color = '#34d399';
+
+                          return (
+                            <line
+                              key={i}
+                              x1={x1}
+                              y1={y1}
+                              x2={x2}
+                              y2={y2}
+                              stroke={color}
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              opacity={0.8}
+                            />
+                          );
+                        })}
+
+                        <path
+                          d="M 30 105 A 70 70 0 0 1 170 105"
+                          fill="none"
+                          stroke={darkMode ? '#2d3142' : '#e2e8f0'}
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M 30 105 A 70 70 0 0 1 170 105"
+                          fill="none"
+                          stroke="#10b981"
+                          strokeWidth="5"
+                          strokeDasharray="220"
+                          strokeDashoffset="0"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+
+                      <div className="text-center mt-[-40px]">
+                        <p className="text-[11px] font-semibold text-slate-400">Completed Accuracy</p>
+                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                          {metrics.isBalanced ? '100.0%' : '92.4%'}
+                        </h2>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Debit = Kredit Seimbang
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="dashboard-card p-6 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-base text-slate-900 dark:text-white">Status Operasional Pabrik</h3>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full">
+                          Aktif Beroperasi
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mb-4">
+                        Ringkasan aktivitas produksi dan kesiapan distribusi mitra pedagang hari ini.
+                      </p>
+
+                      <div className="space-y-3">
+                        <div className="p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                              <Boxes className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white">Stok Fisik Gudang</div>
+                              <div className="text-[11px] text-slate-400">Siap didistribusikan</div>
+                            </div>
+                          </div>
+                          <span className="text-sm font-extrabold text-emerald-600">
+                            {formatIDR(metrics.persediaan)}
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-sm">
+                              <Store className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white">Mitra Pedagang Terdaftar</div>
+                              <div className="text-[11px] text-slate-400">Pabrik {currentUser?.nama_pabrik || 'Depok'}</div>
+                            </div>
+                          </div>
+                          <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                            {(dashboardData?.pedagangList || []).length} Orang
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold text-sm">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white">Integritas Jurnal Operasional</div>
+                              <div className="text-[11px] text-slate-400">Sistem Akuntansi Ganda</div>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            Tervalidasi 100%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveModal('distribusi')}
+                      className="w-full mt-4 py-2.5 bg-[#191a23] dark:bg-emerald-600 hover:bg-black text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Input Pengiriman Baru</span>
                     </button>
                   </div>
-
-                  {/* Top composition badges */}
-                  <div className="grid grid-cols-3 gap-2 py-2">
-                    <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Kas
-                      </div>
-                      <span className="text-xs font-bold text-slate-800">
-                        {metrics.totalAset > 0 ? Math.round((metrics.kas / metrics.totalAset) * 100) : 0}%
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                        Piutang
-                      </div>
-                      <span className="text-xs font-bold text-slate-800">
-                        {metrics.totalAset > 0 ? Math.round((metrics.piutang / metrics.totalAset) * 100) : 0}%
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500 font-semibold mb-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Persediaan
-                      </div>
-                      <span className="text-xs font-bold text-slate-800">
-                        {metrics.totalAset > 0 ? Math.round((metrics.persediaan / metrics.totalAset) * 100) : 0}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Semi-circular gauge meter */}
-                  <div className="relative flex flex-col items-center justify-center py-4">
-                    <svg viewBox="0 0 200 120" className="w-48 overflow-visible">
-                      {/* Radial colored ticks radiating like the reference */}
-                      {Array.from({ length: 35 }).map((_, i) => {
-                        const angle = Math.PI + (i / 34) * Math.PI;
-                        const r1 = 70;
-                        const r2 = 82;
-                        const x1 = 100 + r1 * Math.cos(angle);
-                        const y1 = 105 + r1 * Math.sin(angle);
-                        const x2 = 100 + r2 * Math.cos(angle);
-                        const y2 = 105 + r2 * Math.sin(angle);
-                        
-                        let color = '#10b981';
-                        if (i < 8) color = '#f43f5e';
-                        else if (i < 15) color = '#fbbf24';
-                        else if (i < 24) color = '#34d399';
-
-                        return (
-                          <line
-                            key={i}
-                            x1={x1}
-                            y1={y1}
-                            x2={x2}
-                            y2={y2}
-                            stroke={color}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            opacity={0.8}
-                          />
-                        );
-                      })}
-
-                      {/* Inner Arc */}
-                      <path
-                        d="M 30 105 A 70 70 0 0 1 170 105"
-                        fill="none"
-                        stroke={darkMode ? '#2d3142' : '#e2e8f0'}
-                        strokeWidth="5"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M 30 105 A 70 70 0 0 1 170 105"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="5"
-                        strokeDasharray="220"
-                        strokeDashoffset="0"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-
-                    <div className="text-center mt-[-40px]">
-                      <p className="text-[11px] font-semibold text-slate-400">Completed Accuracy</p>
-                      <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {metrics.isBalanced ? '100.0%' : '92.4%'}
-                      </h2>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Debit = Kredit Seimbang
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
+                )}
 
               </div>
 
@@ -1878,22 +1948,28 @@ export default function App() {
                               {formatIDR(j.total_nominal)}
                             </td>
                             <td className="py-3 text-right pr-2">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                                  title="Edit Transaksi"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              {currentUser?.role === 'super_admin' ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditTransaction(j)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteTransaction(j)}
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  Tervalidasi
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1975,22 +2051,28 @@ export default function App() {
                             {formatIDR(j.total_nominal)}
                           </td>
                           <td className="py-3 text-right pr-2">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => openEditTransaction(j)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                title="Edit Transaksi"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => openDeleteTransaction(j)}
-                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                title="Hapus Transaksi"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {currentUser?.role === 'super_admin' ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditTransaction(j)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => openDeleteTransaction(j)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                Tervalidasi
+                              </span>
+                            )}
                           </td>
                         </tr>
                       )))}
@@ -2109,22 +2191,28 @@ export default function App() {
                               {formatIDR(j.total_nominal)}
                             </td>
                             <td className="py-3 text-right pr-2">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                  title="Edit Transaksi"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              {currentUser?.role === 'super_admin' ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditTransaction(j)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteTransaction(j)}
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  Tervalidasi
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -2137,7 +2225,7 @@ export default function App() {
           )}
 
           {/* TAB: PERALATAN & PEMBELIAN */}
-          {activeTab === 'purchases' && (
+          {activeTab === 'purchases' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -2198,22 +2286,28 @@ export default function App() {
                             {formatIDR(j.total_nominal)}
                           </td>
                           <td className="py-3 text-right pr-2">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => openEditTransaction(j)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                title="Edit Transaksi"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => openDeleteTransaction(j)}
-                                className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                title="Hapus Transaksi"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {currentUser?.role === 'super_admin' ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditTransaction(j)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => openDeleteTransaction(j)}
+                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                Tervalidasi
+                              </span>
+                            )}
                           </td>
                         </tr>
                       )))}
@@ -2232,13 +2326,15 @@ export default function App() {
                   <h2 className="text-xl font-extrabold text-slate-900">Kas & Perbankan</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveModal('modal_awal')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Penyetoran Modal
-                  </button>
+                  {currentUser?.role === 'super_admin' && (
+                    <button
+                      onClick={() => setActiveModal('modal_awal')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Penyetoran Modal
+                    </button>
+                  )}
                   <button
                     onClick={() => setActiveModal('setoran')}
                     className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
@@ -2307,22 +2403,28 @@ export default function App() {
                               {kasDetail.kredit > 0 ? formatIDR(kasDetail.kredit) : '-'}
                             </td>
                             <td className="py-3 text-right pr-2">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                  title="Edit Transaksi"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                              {currentUser?.role === 'super_admin' ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditTransaction(j)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteTransaction(j)}
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  Tervalidasi
+                                </span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -2335,7 +2437,7 @@ export default function App() {
           )}
 
           {/* TAB: LAPORAN KEUANGAN OTOMATIS (NERACA & LABA RUGI) */}
-          {activeTab === 'finance' && (
+          {activeTab === 'finance' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -2516,7 +2618,7 @@ export default function App() {
           )}
 
           {/* TAB: CETAK LAPORAN LENGKAP & ANALISA KEUANGAN */}
-          {activeTab === 'reports' && (
+          {activeTab === 'reports' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
               {/* Header & Controls (Hidden in Print) */}
               <div className="no-print space-y-4">
@@ -3326,7 +3428,7 @@ export default function App() {
           )}
 
           {/* TAB: SUPER ADMIN PABRIK & MANAJEMEN USER */}
-          {activeTab === 'factories' && (
+          {activeTab === 'factories' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
               {/* Header & Sub-Tab Switcher */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

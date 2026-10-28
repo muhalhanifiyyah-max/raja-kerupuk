@@ -107,20 +107,46 @@ async function fallbackPostgrest(sql, params = []) {
     if (table) {
       // Build query string
       let qs = 'select=*';
+      let whereClause = null;
       
       // Check for WHERE conditions
-      const whereMatch = trimmed.match(/WHERE\s+([^ORDER^GROUP^LIMIT^;]+)/i);
+      const whereMatch = trimmed.match(/WHERE\s+(.+?)(?:\s+ORDER\s+BY|\s+GROUP\s+BY|\s+LIMIT|\s*;|$)/is);
       if (whereMatch) {
-        const whereClause = whereMatch[1].trim();
-        // Parse simple col = val or col ILIKE val
-        const conds = whereClause.split(/\s+AND\s+/i);
-        for (const cond of conds) {
-          const eqMatch = cond.match(/([a-zA-Z0-9_.]+)\s*=\s*(.+)/);
-          if (eqMatch) {
-            let col = eqMatch[1].trim().split('.').pop();
-            let val = eqMatch[2].trim().replace(/^['"]|['"]$/g, '');
-            if (col && val && val !== '1=1') {
-              qs += `&${col}=eq.${encodeURIComponent(val)}`;
+        whereClause = whereMatch[1].trim();
+
+        // 1A. Jika klausa WHERE memiliki klausa OR
+        if (whereClause.includes(' OR ') || whereClause.includes(' or ')) {
+          const orTokens = whereClause.split(/\s+OR\s+/i);
+          const orFilterParts = [];
+          for (const token of orTokens) {
+            const m = token.match(/(?:LOWER\s*\(\s*(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\)|(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
+            if (m) {
+              const col = m[1] || m[2];
+              const val = m[4].trim().replace(/^['"]|['"]$/g, '');
+              if (col && val && val !== '1=1') {
+                orFilterParts.push(`${col}.ilike.${val}`);
+              }
+            }
+          }
+          if (orFilterParts.length > 0) {
+            qs += `&or=(${orFilterParts.join(',')})`;
+          }
+        } else {
+          // 1B. Klausa WHERE dengan AND / kondisi tunggal
+          const conds = whereClause.split(/\s+AND\s+/i);
+          for (const cond of conds) {
+            const m = cond.match(/(?:LOWER\s*\(\s*(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\)|(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+))\s*(=|ILIKE|LIKE)\s*(.+)/i);
+            if (m) {
+              const col = m[1] || m[2];
+              const isLower = Boolean(m[1]) || m[3].toUpperCase() === 'ILIKE';
+              const val = m[4].trim().replace(/^['"]|['"]$/g, '');
+              if (col && val && val !== '1=1') {
+                if (isLower) {
+                  qs += `&${col}=ilike.${encodeURIComponent(val)}`;
+                } else {
+                  qs += `&${col}=eq.${encodeURIComponent(val)}`;
+                }
+              }
             }
           }
         }
@@ -142,12 +168,54 @@ async function fallbackPostgrest(sql, params = []) {
         qs += `&limit=${limitMatch[1]}`;
       }
 
+      let rows = [];
       try {
-        return await postgrestRequest(`${table}?${qs}`);
+        rows = await postgrestRequest(`${table}?${qs}`);
       } catch (err) {
         console.warn(`PostgREST select fallback for ${table}:`, err.message);
-        return await postgrestRequest(`${table}?select=*`);
+        rows = await postgrestRequest(`${table}?select=*`);
       }
+
+      if (!Array.isArray(rows)) return [];
+
+      // Enrich join tabel_pabrik dan tabel_pedagang untuk tabel_pengguna
+      if (table === 'tabel_pengguna') {
+        try {
+          const [pabriks, pedagangs] = await Promise.all([
+            postgrestRequest('tabel_pabrik?select=id,nama_pabrik'),
+            postgrestRequest('tabel_pedagang?select=id,nama_pedagang')
+          ]);
+          const pabrikMap = (pabriks || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nama_pabrik }), {});
+          const pedagangMap = (pedagangs || []).reduce((acc, p) => ({ ...acc, [p.id]: p.nama_pedagang }), {});
+
+          rows = rows.map(r => ({
+            ...r,
+            nama_pabrik: r.pabrik_id ? pabrikMap[r.pabrik_id] || null : null,
+            nama_pedagang: r.pedagang_id ? pedagangMap[r.pedagang_id] || null : null
+          }));
+        } catch {
+          // ignore enrich error
+        }
+      }
+
+      // Client-side safety filter jika klausa WHERE spesifik
+      if (whereClause && rows.length > 0) {
+        const userMatch = whereClause.match(/username\)?\s*=\s*['"]([^'"]+)['"]/i);
+        const emailMatch = whereClause.match(/email\)?\s*=\s*['"]([^'"]+)['"]/i);
+        if (userMatch || emailMatch) {
+          const targetU = userMatch ? userMatch[1].toLowerCase() : null;
+          const targetE = emailMatch ? emailMatch[1].toLowerCase() : null;
+          const filtered = rows.filter(r => 
+            (targetU && (r.username || '').toLowerCase() === targetU) ||
+            (targetE && (r.email || '').toLowerCase() === targetE)
+          );
+          if (filtered.length > 0) {
+            rows = filtered;
+          }
+        }
+      }
+
+      return rows;
     }
   }
 
