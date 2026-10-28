@@ -105,25 +105,32 @@ export async function GET(request) {
       getLabaRugi(pabrikId),
       queryAll(`
         SELECT 
-          id, 
-          nama_pedagang, 
-          no_telepon, 
-          alamat, 
-          limit_piutang, 
-          saldo_piutang,
+          ped.id, 
+          ped.pabrik_id,
+          pab.nama_pabrik,
+          ped.nama_pedagang, 
+          ped.no_telepon, 
+          ped.alamat, 
+          ped.limit_piutang, 
+          ped.saldo_piutang,
           CASE 
-            WHEN limit_piutang > 0 AND saldo_piutang >= limit_piutang THEN 'Over Limit'
-            WHEN limit_piutang > 0 AND (saldo_piutang / limit_piutang) >= 0.8 THEN 'Mendekati Limit'
-            WHEN saldo_piutang > 0 THEN 'Lancar'
+            WHEN ped.limit_piutang > 0 AND ped.saldo_piutang >= ped.limit_piutang THEN 'Over Limit'
+            WHEN ped.limit_piutang > 0 AND (ped.saldo_piutang / ped.limit_piutang) >= 0.8 THEN 'Mendekati Limit'
+            WHEN ped.saldo_piutang > 0 THEN 'Lancar'
             ELSE 'Lunas'
           END AS status_piutang
-        FROM tabel_pedagang 
-        WHERE pabrik_id = ?
-        ORDER BY saldo_piutang DESC
+        FROM tabel_pedagang ped
+        LEFT JOIN tabel_pabrik pab ON ped.pabrik_id = pab.id
+        WHERE ped.pabrik_id = ?
+        ORDER BY ped.saldo_piutang DESC
         LIMIT 10
       `, [pabrikId]),
       queryAll(`
-        SELECT * FROM tabel_produk WHERE pabrik_id = ? ORDER BY nama_produk ASC
+        SELECT prod.*, pab.nama_pabrik 
+        FROM tabel_produk prod 
+        LEFT JOIN tabel_pabrik pab ON prod.pabrik_id = pab.id
+        WHERE prod.pabrik_id = ? 
+        ORDER BY prod.nama_produk ASC
       `, [pabrikId]),
       getJurnalUmum(pabrikId, { limit: 25 }),
       queryAll(`

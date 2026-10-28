@@ -55,7 +55,8 @@ import {
   Navigation,
   Image as ImageIcon,
   ExternalLink,
-  Compass
+  Compass,
+  Globe
 } from 'lucide-react';
 import { captureDropPhoto, getDropLocation, isNativePlatform } from '@/lib/capacitor';
 
@@ -754,6 +755,88 @@ export default function App() {
     ? { id: 'all', nama_pabrik: 'Semua Pabrik', lokasi: 'Semua Cabang', status: 'active' }
     : (factories.find(f => String(f.id) === String(selectedPabrikId)) || factories[0]);
 
+  // Helper render Filter Pabrik konsisten untuk semua fitur admin
+  const renderFactoryFilterBar = (title, subtitle, extraActions = null) => {
+    return (
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 md:p-5 rounded-2xl bg-white dark:bg-[#1a1b24] border border-slate-200/80 dark:border-white/10 shadow-sm">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white">
+              {title}
+            </h2>
+            {selectedPabrikId === 'all' ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-900 text-white dark:bg-emerald-500/20 dark:text-emerald-300 border border-slate-700 dark:border-emerald-500/30">
+                <Globe className="w-3 h-3 text-emerald-400" />
+                Semua Pabrik (Konsolidasi Global)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                <Building2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                Pabrik: {currentFactory?.nama_pabrik}
+              </span>
+            )}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {subtitle}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {currentUser?.role === 'super_admin' ? (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/10">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pl-2 hidden sm:inline flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-emerald-500" /> Filter:
+              </span>
+              <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+                <button
+                  onClick={() => {
+                    setSelectedPabrikId('all');
+                    loadDashboard('all');
+                    loadCheckpoints('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedPabrikId === 'all'
+                      ? 'bg-[#191a23] dark:bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
+                  }`}
+                >
+                  Semua ({factories.length})
+                </button>
+                {factories.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      const strId = String(f.id);
+                      setSelectedPabrikId(strId);
+                      loadDashboard(strId);
+                      loadCheckpoints(strId);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                      String(selectedPabrikId) === String(f.id)
+                        ? 'bg-[#191a23] dark:bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {f.nama_pabrik}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Pabrik: <strong>{currentUser?.nama_pabrik || currentFactory?.nama_pabrik}</strong></span>
+            </div>
+          )}
+
+          {extraActions}
+        </div>
+      </div>
+    );
+  };
+
   // Data lists & reports computations
   const produkList = dashboardData?.produkList || [];
   const pedagangList = dashboardData?.pedagangList || [];
@@ -1375,7 +1458,12 @@ export default function App() {
 
           {/* TAB: DASHBOARD VIEW */}
           {activeTab === 'dashboard' && (
-            <>
+            <div className="space-y-6">
+              {renderFactoryFilterBar(
+                'Dashboard Operasional Pabrik',
+                'Pemantauan indikator kinerja utama, kesehatan neraca, dan arus kas'
+              )}
+
               {/* TOP 4 KPI CARDS (Matching Shopify POS Layout) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
@@ -2133,26 +2221,25 @@ export default function App() {
                 </div>
               </div>
 
-            </>
+            </div>
           )}
 
           {/* TAB: DISTRIBUSI & PIUTANG */}
           {activeTab === 'sales' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Distribusi & Piutang</h2>
-                </div>
-                {currentUser?.role === 'admin_pabrik' && (
+              {renderFactoryFilterBar(
+                'Distribusi & Piutang',
+                'Monitoring drop kerupuk ke pedagang keliling, saldo piutang, dan omset penjualan',
+                currentUser?.role === 'admin_pabrik' ? (
                   <button
                     onClick={() => setActiveModal('distribusi')}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                   >
-                    <Plus className="w-4 h-4" />
-                    Drop Barang ke Pedagang
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Drop Barang ke Pedagang</span>
                   </button>
-                )}
-              </div>
+                ) : null
+              )}
 
               {/* Jurnal Transaksi Distribusi List */}
               <div className="dashboard-card p-6">
@@ -2162,6 +2249,7 @@ export default function App() {
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal & No. Bukti</th>
+                        <th className="pb-3">Pabrik</th>
                         <th className="pb-3">Tipe & Keterangan</th>
                         <th className="pb-3">Dampak Double-Entry Jurnal</th>
                         <th className="pb-3 text-right">Total Transaksi</th>
@@ -2171,7 +2259,7 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100">
                       {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'DISTRIBUSI_PENJUALAN').length === 0) ? (
                         <tr>
-                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
                             Belum ada riwayat distribusi tercatat
                           </td>
                         </tr>
@@ -2181,6 +2269,11 @@ export default function App() {
                             <td className="py-3">
                               <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
                               <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                                {j.nama_pabrik || 'Pabrik'}
+                              </span>
                             </td>
                             <td className="py-3">
                               {(() => {
@@ -2263,31 +2356,28 @@ export default function App() {
           {/* TAB: PERSEDIAAN STOK */}
           {activeTab === 'inventory' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Persediaan Barang</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  {currentUser?.role === 'admin_pabrik' && (
-                    <>
-                      <button
-                        onClick={() => setActiveModal('beli_persediaan')}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Belanja Stok Baru
-                      </button>
-                      <button
-                        onClick={() => setActiveModal('tambah_produk')}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                      >
-                        <PackagePlus className="w-3.5 h-3.5" />
-                        Tambah Produk Baru
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+              {renderFactoryFilterBar(
+                'Persediaan Barang & Stok Gudang',
+                'Katalog produk kerupuk, nilai aset gudang, dan pembelian persediaan',
+                currentUser?.role === 'admin_pabrik' ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveModal('beli_persediaan')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Belanja Stok Baru</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveModal('tambah_produk')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                    >
+                      <PackagePlus className="w-3.5 h-3.5" />
+                      <span>Tambah Produk Baru</span>
+                    </button>
+                  </div>
+                ) : null
+              )}
 
               {/* Produk Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -2301,9 +2391,16 @@ export default function App() {
                   return (
                     <div key={prod.id} className="dashboard-card p-5 relative overflow-hidden">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                          {prod.kategori || 'Kerupuk'}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                            {prod.kategori || 'Kerupuk'}
+                          </span>
+                          {prod.nama_pabrik && (
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-md">
+                              {prod.nama_pabrik}
+                            </span>
+                          )}
+                        </div>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stok > 50 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-600'
                           }`}>
                           Stok: {stok} {prod.satuan}
@@ -2341,6 +2438,7 @@ export default function App() {
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal & No. Bukti</th>
+                        <th className="pb-3">Pabrik</th>
                         <th className="pb-3">Nama Produk / Item</th>
                         <th className="pb-3">Keterangan</th>
                         <th className="pb-3 text-right">Nilai Pembelian</th>
@@ -2350,7 +2448,7 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100">
                       {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERSEDIAAN').length === 0) ? (
                         <tr>
-                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
                             Belum ada riwayat pembelian persediaan tercatat
                           </td>
                         </tr>
@@ -2360,6 +2458,11 @@ export default function App() {
                             <td className="py-3">
                               <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
                               <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                                {j.nama_pabrik || 'Pabrik'}
+                              </span>
                             </td>
                             <td className="py-3 font-semibold text-slate-800 text-xs">
                               {j.referensi || '-'}
@@ -2407,18 +2510,17 @@ export default function App() {
           {/* TAB: PERALATAN & PEMBELIAN */}
           {activeTab === 'purchases' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Peralatan & Aset</h2>
-                </div>
+              {renderFactoryFilterBar(
+                'Peralatan & Aset Pabrik',
+                'Investasi mesin cetak, oven pengering, dan aset tetap operasional pabrik',
                 <button
                   onClick={() => setActiveModal('beli_peralatan')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                 >
-                  <Plus className="w-4 h-4" />
-                  Beli Peralatan Baru
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Beli Peralatan Baru</span>
                 </button>
-              </div>
+              )}
 
               <div className="dashboard-card p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -2433,6 +2535,7 @@ export default function App() {
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal Bukti</th>
+                        <th className="pb-3">Pabrik</th>
                         <th className="pb-3">Nama Peralatan / Mesin</th>
                         <th className="pb-3">Jurnal Akuntansi</th>
                         <th className="pb-3 text-right">Nilai Perolehan</th>
@@ -2442,7 +2545,7 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100">
                       {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERALATAN').length === 0) ? (
                         <tr>
-                          <td colSpan="5" className="py-8 text-center text-slate-400 text-xs">
+                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
                             Belum ada riwayat pembelian peralatan tercatat
                           </td>
                         </tr>
@@ -2452,6 +2555,11 @@ export default function App() {
                             <td className="py-3">
                               <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
                               <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                                {j.nama_pabrik || 'Pabrik'}
+                              </span>
                             </td>
                             <td className="py-3">
                               {(() => {
@@ -2523,22 +2631,19 @@ export default function App() {
           {/* TAB: KAS & PERBANKAN */}
           {activeTab === 'banking' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Kas & Perbankan</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  {currentUser?.role === 'admin_pabrik' && (
-                    <button
-                      onClick={() => setActiveModal('setoran')}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                    >
-                      <ArrowDownLeft className="w-3.5 h-3.5" />
-                      Terima Setoran Pedagang
-                    </button>
-                  )}
-                </div>
-              </div>
+              {renderFactoryFilterBar(
+                'Kas & Perbankan',
+                'Buku mutasi kas lancar dan penerimaan setoran pelunasan pedagang',
+                currentUser?.role === 'admin_pabrik' ? (
+                  <button
+                    onClick={() => setActiveModal('setoran')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                  >
+                    <ArrowDownLeft className="w-3.5 h-3.5" />
+                    <span>Terima Setoran Pedagang</span>
+                  </button>
+                ) : null
+              )}
 
               {/* Kas Card */}
               <div className="dashboard-card p-6 bg-gradient-to-r from-slate-900 to-[#191a23] text-white">
@@ -2561,6 +2666,7 @@ export default function App() {
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal & Bukti</th>
+                        <th className="pb-3">Pabrik</th>
                         <th className="pb-3">Keterangan</th>
                         <th className="pb-3">Tipe Transaksi</th>
                         <th className="pb-3 text-right">Debit (Masuk)</th>
@@ -2571,7 +2677,7 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100">
                       {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.details?.some(d => d.kode_akun === '1001')).length === 0) ? (
                         <tr>
-                          <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
+                          <td colSpan="7" className="py-8 text-center text-slate-400 text-xs">
                             Belum ada riwayat mutasi kas tercatat
                           </td>
                         </tr>
@@ -2584,6 +2690,11 @@ export default function App() {
                               <td className="py-3">
                                 <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
                                 <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                              </td>
+                              <td className="py-3">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                                  {j.nama_pabrik || 'Pabrik'}
+                                </span>
                               </td>
                               <td className="py-3 text-xs text-slate-700">{j.keterangan}</td>
                               <td className="py-3">
@@ -2634,18 +2745,17 @@ export default function App() {
           {/* TAB: LAPORAN KEUANGAN OTOMATIS (NERACA & LABA RUGI) */}
           {activeTab === 'finance' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Laporan Keuangan</h2>
-                </div>
+              {renderFactoryFilterBar(
+                'Laporan Keuangan Terpadu',
+                'Posisi neraca saldo keuangan, aset, liabilitas, ekuitas, dan laba rugi berjalan',
                 <button
                   onClick={() => setActiveTab('reports')}
-                  className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-full hover:bg-slate-50 shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-full hover:bg-slate-50 shadow-sm"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  Cetak Laporan
+                  <span>Format Cetak Lengkap</span>
                 </button>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -2816,14 +2926,9 @@ export default function App() {
             <div className="space-y-6">
               {/* Header & Controls (Hidden in Print) */}
               <div className="no-print space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Cetak Laporan Lengkap</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Laporan resmi komprehensif neraca, laba rugi, persediaan barang gudang, pengawasan piutang, dan analisa rasio keuangan.
-                    </p>
-                  </div>
-
+                {renderFactoryFilterBar(
+                  'Cetak Dokumen & Laporan Resmi',
+                  'Laporan resmi komprehensif neraca, laba rugi, persediaan barang gudang, pengawasan piutang, dan analisa rasio keuangan',
                   <div className="flex items-center gap-2">
                     <button
                       onClick={exportReportCSV}
@@ -2842,7 +2947,7 @@ export default function App() {
                       <span>Cetak Laporan / Simpan PDF</span>
                     </button>
                   </div>
-                </div>
+                )}
 
                 {/* Filter Section Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
@@ -3623,38 +3728,37 @@ export default function App() {
           {activeTab === 'factories' && currentUser?.role === 'super_admin' && (
             <div className="space-y-6">
               {/* Header & Sub-Tab Switcher */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Entitas Pabrik & Pengguna</h2>
-                </div>
-
-                {/* Sub Tab Pills */}
-                <div className="flex items-center gap-2 bg-slate-200/60 p-1 rounded-full text-xs font-semibold">
+              {renderFactoryFilterBar(
+                'Entitas Pabrik & Pengguna',
+                'Pendaftaran cabang pabrik baru, monitoring kinerja tiap cabang, dan pengaturan hak akses pengguna',
+                <div className="flex items-center gap-2 bg-slate-200/60 dark:bg-white/10 p-1 rounded-xl text-xs font-semibold">
                   <button
                     onClick={() => setSuperAdminSubTab('pabrik')}
-                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${superAdminSubTab === 'pabrik'
-                        ? 'bg-[#191a23] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                      superAdminSubTab === 'pabrik'
+                        ? 'bg-[#191a23] dark:bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
                   >
                     <Factory className="w-3.5 h-3.5" />
-                    Entitas Pabrik ({factories.length})
+                    <span>Entitas Pabrik ({factories.length})</span>
                   </button>
                   <button
                     onClick={() => {
                       setSuperAdminSubTab('users');
                       loadUsers();
                     }}
-                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${superAdminSubTab === 'users'
-                        ? 'bg-[#191a23] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                      superAdminSubTab === 'users'
+                        ? 'bg-[#191a23] dark:bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
                   >
                     <Users className="w-3.5 h-3.5" />
-                    Manajemen Pengguna ({usersList.length})
+                    <span>Pengguna ({usersList.length})</span>
                   </button>
                 </div>
-              </div>
+              )}
 
               {/* SUB-VIEW 1: ENTITAS PABRIK (CRUD PABRIK) */}
               {superAdminSubTab === 'pabrik' && (
@@ -3950,6 +4054,11 @@ export default function App() {
           {/* TAB: MONITORING CHECK-POINT DROP PEDAGANG (ADMIN & PABRIK) */}
           {activeTab === 'checkpoints' && (
             <div className="space-y-6">
+              {renderFactoryFilterBar(
+                'Monitoring Check-Point Lapangan',
+                'Pemantauan titik drop kerupuk ke warung mitra oleh pedagang keliling dengan verifikasi foto dan GPS'
+              )}
+
               {/* Header Banner */}
               <div className="p-6 rounded-3xl bg-gradient-to-r from-[#191a23] via-[#242738] to-[#191a23] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/5">
                 <div className="space-y-1">
@@ -4019,14 +4128,41 @@ export default function App() {
                     className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:border-slate-800 text-slate-800 dark:text-white"
                   />
                 </div>
-                <span className="text-xs text-slate-400 self-end sm:self-auto">
-                  Menampilkan {checkpointsList.filter(c =>
-                    !checkpointSearch ||
-                    c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                    c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                    c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
-                  ).length} rekaman drop
-                </span>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {currentUser?.role === 'super_admin' && (
+                    <div className="relative">
+                      <select
+                        value={selectedPabrikId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedPabrikId(val);
+                          loadDashboard(val);
+                          loadCheckpoints(val);
+                        }}
+                        className="pl-8 pr-8 py-2 text-xs font-bold rounded-xl bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 appearance-none cursor-pointer focus:outline-none shadow-sm"
+                      >
+                        <option value="all">Semua Pabrik ({factories.length})</option>
+                        {factories.map((f) => (
+                          <option key={f.id} value={String(f.id)}>
+                            {f.nama_pabrik}
+                          </option>
+                        ))}
+                      </select>
+                      <Building2 className="w-3.5 h-3.5 text-emerald-600 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  )}
+
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    Menampilkan {checkpointsList.filter(c =>
+                      !checkpointSearch ||
+                      c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                      c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                      c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
+                    ).length} rekaman drop
+                  </span>
+                </div>
               </div>
 
               {/* Checkpoint Feed / Grid */}
