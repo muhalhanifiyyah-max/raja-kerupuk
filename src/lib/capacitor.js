@@ -39,6 +39,47 @@ export function isNativePlatform() {
 }
 
 /**
+ * Helper untuk kompresi gambar base64 sebelum diunggah
+ * Menjaga kualitas tetap tajam dan ukuran payload ringan (~150KB - 250KB)
+ */
+export function compressImageDataUrl(dataUrl, maxWidth = 1280, maxHeight = 1280, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !dataUrl || !dataUrl.startsWith('data:image')) {
+      resolve(dataUrl);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width / height > maxWidth / maxHeight) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedUrl);
+    };
+
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+/**
  * Ambil foto bukti drop kerupuk menggunakan Kamera HP atau Galeri
  * Menggunakan @capacitor/camera jika native, fallback ke input kamera web
  */
@@ -50,6 +91,8 @@ export async function captureDropPhoto() {
     try {
       const image = await Camera.getPhoto({
         quality: 75,
+        width: 1280,
+        height: 1280,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
         source: CameraSource.Prompt,
@@ -57,9 +100,9 @@ export async function captureDropPhoto() {
         promptLabelPhoto: 'Pilih dari Galeri',
         promptLabelPicture: 'Ambil Foto dari Kamera'
       });
-      return { success: true, dataUrl: image.dataUrl, format: image.format };
+      const optimizedUrl = await compressImageDataUrl(image.dataUrl);
+      return { success: true, dataUrl: optimizedUrl, format: image.format };
     } catch (err) {
-      // Jika user menekan cancel
       if (err.message && (err.message.includes('User cancelled') || err.message.includes('cancelled'))) {
         return { success: false, cancelled: true };
       }
@@ -81,8 +124,13 @@ export async function captureDropPhoto() {
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => {
-        resolve({ success: true, dataUrl: reader.result, format: file.type });
+      reader.onload = async () => {
+        try {
+          const compressed = await compressImageDataUrl(reader.result);
+          resolve({ success: true, dataUrl: compressed, format: 'jpeg' });
+        } catch {
+          resolve({ success: true, dataUrl: reader.result, format: file.type });
+        }
       };
       reader.onerror = (err) => {
         resolve({ success: false, error: err.message });

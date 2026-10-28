@@ -156,8 +156,11 @@ async function fallbackPostgrest(sql, params = []) {
               if (colAlias && tableAlias && colAlias !== tableAlias && colAlias !== table.toLowerCase()) {
                 continue;
               }
-              const isLower = Boolean(m[1] || m[3]) || m[5].toUpperCase() === 'ILIKE';
               const val = m[6].trim().replace(/^['"]|['"]$/g, '');
+              const hasLower = /^\s*LOWER\s*\(/i.test(cond);
+              const op = m[5].toUpperCase();
+              const isNumeric = /^-?\d+(\.\d+)?$/.test(val);
+              const isLower = !isNumeric && (hasLower || op === 'ILIKE');
               if (col && val) {
                 if (isLower) {
                   qs += `&${col}=ilike.${encodeURIComponent(val)}`;

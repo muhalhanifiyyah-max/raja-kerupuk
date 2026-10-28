@@ -16,15 +16,23 @@ export async function OPTIONS() {
 
 // Helper simpan base64 foto ke public/uploads/
 function saveBase64Image(base64Str) {
-  if (!base64Str || !base64Str.startsWith('data:image')) {
-    return base64Str; // sudah berupa URL atau kosong
+  if (!base64Str || typeof base64Str !== 'string') return null;
+  if (!base64Str.startsWith('data:image')) {
+    return base64Str; // sudah berupa URL atau path
   }
   try {
-    const matches = base64Str.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) return base64Str;
+    const commaIndex = base64Str.indexOf(',');
+    if (commaIndex === -1) return null;
 
-    const ext = matches[1].replace('jpeg', 'jpg');
-    const buffer = Buffer.from(matches[2], 'base64');
+    const metaPart = base64Str.substring(0, commaIndex);
+    const dataPart = base64Str.substring(commaIndex + 1).replace(/\s/g, '');
+
+    let ext = 'jpg';
+    if (metaPart.includes('png')) ext = 'png';
+    else if (metaPart.includes('webp')) ext = 'webp';
+    else if (metaPart.includes('jpeg') || metaPart.includes('jpg')) ext = 'jpg';
+
+    const buffer = Buffer.from(dataPart, 'base64');
     const filename = `drop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
     const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 
@@ -36,8 +44,8 @@ function saveBase64Image(base64Str) {
     fs.writeFileSync(filePath, buffer);
     return `/uploads/${filename}`;
   } catch (err) {
-    console.warn('Gagal menyimpan file foto bukti, fallback ke raw string:', err.message);
-    return base64Str;
+    console.warn('Gagal menyimpan file foto bukti:', err.message);
+    return null;
   }
 }
 
