@@ -1,28 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Boxes, 
-  ShoppingCart, 
-  Landmark, 
-  Receipt, 
-  Building2, 
-  Search, 
-  Bell, 
-  SlidersHorizontal, 
-  Plus, 
-  ArrowUpRight, 
-  TrendingUp, 
-  Wallet, 
-  AlertCircle, 
-  CheckCircle2, 
-  MoreVertical, 
-  Phone, 
-  ChevronDown, 
-  RefreshCw, 
-  Printer, 
+import {
+  LayoutDashboard,
+  FileText,
+  Boxes,
+  ShoppingCart,
+  Landmark,
+  Receipt,
+  Building2,
+  Search,
+  Bell,
+  SlidersHorizontal,
+  Plus,
+  ArrowUpRight,
+  TrendingUp,
+  Wallet,
+  AlertCircle,
+  CheckCircle2,
+  MoreVertical,
+  Phone,
+  ChevronDown,
+  RefreshCw,
+  Printer,
   Download,
   FileSpreadsheet,
   Scale,
@@ -426,7 +426,7 @@ export default function App() {
       if (saved !== null) {
         setDarkMode(saved === 'true');
       }
-    } catch {}
+    } catch { }
     checkAuth();
     loadFactories();
     loadUsers();
@@ -440,7 +440,7 @@ export default function App() {
       } else {
         document.documentElement.classList.remove('dark');
       }
-    } catch {}
+    } catch { }
   }, [darkMode]);
 
   useEffect(() => {
@@ -562,7 +562,7 @@ export default function App() {
       showToast(err.message, 'error');
     }
   };
- 
+
   // Transaction Edit & Delete Handlers
   const openEditTransaction = (journal) => {
     setEditTransactionForm({
@@ -847,7 +847,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#f1f3f6] text-slate-800 flex flex-col justify-center items-center p-4">
         <div className="w-full max-w-sm space-y-6">
-          
+
           {/* Logo & Simple Title */}
           <div className="text-center space-y-2">
             <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/90 p-2 mx-auto shadow-sm flex items-center justify-center">
@@ -948,14 +948,13 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex ${darkMode ? 'dark bg-[#0f1015] text-[#f1f3f6]' : 'bg-[#f1f3f6] text-[#191a23]'}`}>
-      
+
       {/* Toast Notification */}
       {notification && (
-        <div className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border ${
-          notification.type === 'error' 
-            ? 'bg-rose-900/90 text-white border-rose-700' 
+        <div className={`fixed top-5 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border ${notification.type === 'error'
+            ? 'bg-rose-900/90 text-white border-rose-700'
             : 'bg-[#191a23] text-white border-emerald-500/50'
-        }`}>
+          }`}>
           {notification.type === 'error' ? (
             <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
           ) : (
@@ -966,9 +965,8 @@ export default function App() {
       )}
 
       {/* LEFT SIDEBAR */}
-      <aside className={`w-64 p-5 flex flex-col justify-between shrink-0 border-r ${
-        darkMode ? 'bg-[#14151c] border-white/5' : 'bg-white border-slate-200/70'
-      }`}>
+      <aside className={`w-64 p-5 flex flex-col justify-between shrink-0 border-r ${darkMode ? 'bg-[#14151c] border-white/5' : 'bg-white border-slate-200/70'
+        }`}>
         <div className="space-y-6">
           {/* Logo & Brand Header */}
           <div className="flex items-center gap-3 px-2 pt-1">
@@ -991,11 +989,10 @@ export default function App() {
                     setActiveTab('pedagang_portal');
                     setPedagangSubTab('checkpoint_form');
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <MapPin className="w-4 h-4 text-emerald-400" />
                   <span>Check-Point Drop</span>
@@ -1006,11 +1003,10 @@ export default function App() {
                     setActiveTab('pedagang_portal');
                     setPedagangSubTab('checkpoint_history');
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <Camera className="w-4 h-4 text-sky-400" />
                   <span>Riwayat Drop Warung</span>
@@ -1021,11 +1017,10 @@ export default function App() {
                     setActiveTab('pedagang_portal');
                     setPedagangSubTab('kartu_piutang');
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <Store className="w-4 h-4 text-amber-400" />
                   <span>Hutang & Setoran</span>
@@ -1036,11 +1031,10 @@ export default function App() {
                     setActiveTab('pedagang_portal');
                     setPedagangSubTab('katalog');
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <Boxes className="w-4 h-4 text-indigo-400" />
                   <span>Katalog Produk</span>
@@ -1050,11 +1044,10 @@ export default function App() {
               <>
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'dashboard'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'dashboard'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Dashboard</span>
@@ -1062,11 +1055,10 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('sales')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'sales'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'sales'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <FileText className="w-4 h-4" />
                   <span>Distribusi & Piutang</span>
@@ -1074,23 +1066,21 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('checkpoints')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'checkpoints'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'checkpoints'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <MapPin className="w-4 h-4 text-emerald-500" />
-                  <span>Monitoring Check-Point</span>
+                  <span>Check-Point</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('inventory')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'inventory'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'inventory'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <Boxes className="w-4 h-4" />
                   <span>Persediaan Stok</span>
@@ -1098,11 +1088,10 @@ export default function App() {
 
                 <button
                   onClick={() => setActiveTab('banking')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                    activeTab === 'banking'
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'banking'
                       ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                  }`}
+                    }`}
                 >
                   <Landmark className="w-4 h-4" />
                   <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
@@ -1113,11 +1102,10 @@ export default function App() {
                   <>
                     <button
                       onClick={() => setActiveTab('purchases')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                        activeTab === 'purchases'
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
                           ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
+                        }`}
                     >
                       <ShoppingCart className="w-4 h-4" />
                       <span>Peralatan & Aset</span>
@@ -1125,11 +1113,10 @@ export default function App() {
 
                     <button
                       onClick={() => setActiveTab('finance')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                        activeTab === 'finance'
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
                           ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
+                        }`}
                     >
                       <Receipt className="w-4 h-4" />
                       <span>Laporan Keuangan</span>
@@ -1137,11 +1124,10 @@ export default function App() {
 
                     <button
                       onClick={() => setActiveTab('reports')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                        activeTab === 'reports'
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'reports'
                           ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
+                        }`}
                     >
                       <Printer className="w-4 h-4" />
                       <span>Cetak Laporan</span>
@@ -1152,11 +1138,10 @@ export default function App() {
                         setActiveTab('factories');
                         setSelectedPabrikId('all');
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                        activeTab === 'factories'
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'factories'
                           ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
+                        }`}
                     >
                       <Building2 className="w-4 h-4" />
                       <span>Super Admin Pabrik</span>
@@ -1185,18 +1170,16 @@ export default function App() {
           <div className="bg-slate-100 dark:bg-[#1a1b24] dark:border dark:border-white/10 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
             <button
               onClick={() => setDarkMode(false)}
-              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
-                !darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-              }`}
+              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${!darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                }`}
             >
               <Sun className="w-3.5 h-3.5" />
               Light
             </button>
             <button
               onClick={() => setDarkMode(true)}
-              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${
-                darkMode ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-              }`}
+              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${darkMode ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                }`}
             >
               <Moon className="w-3.5 h-3.5" />
               Dark
@@ -1207,10 +1190,10 @@ export default function App() {
           <div className="pt-3 border-t border-slate-200/70 dark:border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
-                <img 
-                  src="/default-avatar.png" 
-                  alt={currentUser?.nama || 'User'} 
-                  className="w-full h-full object-cover" 
+                <img
+                  src="/default-avatar.png"
+                  alt={currentUser?.nama || 'User'}
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="truncate">
@@ -1235,11 +1218,10 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
-        
+
         {/* TOP NAVBAR */}
-        <header className={`px-8 py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${
-          darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
-        }`}>
+        <header className={`px-8 py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
+          }`}>
           {/* Search Bar & Factory Selector */}
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             <div className="relative flex-1">
@@ -1247,11 +1229,10 @@ export default function App() {
               <input
                 type="text"
                 placeholder="Cari transaksi, pedagang, jurnal... (⌘ + Space)"
-                className={`w-full pl-10 pr-24 py-2 text-sm rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                  darkMode 
-                    ? 'bg-[#1a1b24] border-white/10 text-white placeholder-slate-500' 
+                className={`w-full pl-10 pr-24 py-2 text-sm rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${darkMode
+                    ? 'bg-[#1a1b24] border-white/10 text-white placeholder-slate-500'
                     : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-sm'
-                }`}
+                  }`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 rounded text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                 <span>⌘</span>
@@ -1265,11 +1246,10 @@ export default function App() {
                 <select
                   value={selectedPabrikId}
                   onChange={(e) => setSelectedPabrikId(e.target.value)}
-                  className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-                    selectedPabrikId === 'all'
+                  className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${selectedPabrikId === 'all'
                       ? 'bg-[#191a23] dark:bg-emerald-600 text-white border-slate-700 dark:border-emerald-500'
                       : 'bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10'
-                  }`}
+                    }`}
                 >
                   <option value="all">Semua Pabrik</option>
                   {factories.map((f) => (
@@ -1278,9 +1258,8 @@ export default function App() {
                     </option>
                   ))}
                 </select>
-                <Factory className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                  selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500 dark:text-slate-400'
-                }`} />
+                <Factory className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                  }`} />
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             ) : currentUser?.role === 'admin_pabrik' ? (
@@ -1317,10 +1296,10 @@ export default function App() {
             {/* User Avatar & Identity */}
             <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-white/10">
               <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm ring-2 ring-white dark:ring-[#14151c] bg-slate-100 dark:bg-white/5">
-                <img 
-                  src="/default-avatar.png" 
-                  alt={currentUser?.nama || 'User'} 
-                  className="w-full h-full object-cover" 
+                <img
+                  src="/default-avatar.png"
+                  alt={currentUser?.nama || 'User'}
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="hidden md:block">
@@ -1352,13 +1331,13 @@ export default function App() {
 
         {/* CONTENT BODY */}
         <main className="p-8 space-y-6 flex-1">
-          
+
           {/* TAB: DASHBOARD VIEW */}
           {activeTab === 'dashboard' && (
             <>
               {/* TOP 4 KPI CARDS (Matching Shopify POS Layout) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                
+
                 {/* 1. Kas & Bank */}
                 <div className="dashboard-card p-5 relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-3">
@@ -1369,7 +1348,7 @@ export default function App() {
                       <span className="text-xs font-semibold text-slate-500">Kas (Aset Lancar)</span>
                     </div>
                     {currentUser?.role === 'super_admin' && (
-                      <button 
+                      <button
                         onClick={() => setActiveModal('modal_awal')}
                         className="text-slate-400 hover:text-slate-700 transition-colors p-1"
                         title="Tambah Modal Kas"
@@ -1398,7 +1377,7 @@ export default function App() {
                       </div>
                       <span className="text-xs font-semibold text-slate-500">Piutang Pedagang</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveModal('setoran')}
                       className="text-slate-400 hover:text-slate-700 transition-colors p-1"
                       title="Catat Setoran Pembayaran"
@@ -1426,7 +1405,7 @@ export default function App() {
                       </div>
                       <span className="text-xs font-semibold text-slate-500">Persediaan Barang</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveModal('beli_persediaan')}
                       className="text-slate-400 hover:text-slate-700 transition-colors p-1"
                       title="Belanja Persediaan Baru"
@@ -1455,7 +1434,7 @@ export default function App() {
                       <span className="text-xs font-semibold text-slate-500">Laba Bersih</span>
                     </div>
                     {currentUser?.role === 'super_admin' && (
-                      <button 
+                      <button
                         onClick={() => setActiveTab('finance')}
                         className="text-slate-400 hover:text-slate-700 transition-colors p-1"
                         title="Lihat Laporan Laba Rugi"
@@ -1479,7 +1458,7 @@ export default function App() {
 
               {/* MIDDLE ROW: CHART & GAUGE ACCURACY (Exact reference match) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* Middle Left: Overview Area Chart (2 Cols) */}
                 <div className="dashboard-card p-6 lg:col-span-2 flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
@@ -1637,7 +1616,7 @@ export default function App() {
                           const y1 = 105 + r1 * Math.sin(angle);
                           const x2 = 100 + r2 * Math.cos(angle);
                           const y2 = 105 + r2 * Math.sin(angle);
-                          
+
                           let color = '#10b981';
                           if (i < 8) color = '#f43f5e';
                           else if (i < 15) color = '#fbbf24';
@@ -1769,7 +1748,7 @@ export default function App() {
                     <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per pedagang</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => setActiveModal('tambah_pedagang')}
                       className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-all flex items-center gap-1.5"
                     >
@@ -1838,15 +1817,14 @@ export default function App() {
                               </div>
                             </td>
                             <td className="py-3.5">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                                p.status_piutang === 'Over Limit'
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${p.status_piutang === 'Over Limit'
                                   ? 'bg-rose-50 text-rose-600 border border-rose-200'
                                   : p.status_piutang === 'Mendekati Limit'
-                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  : p.status_piutang === 'Lunas'
-                                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              }`}>
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : p.status_piutang === 'Lunas'
+                                      ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                }`}>
                                 {p.status_piutang}
                               </span>
                             </td>
@@ -1928,9 +1906,8 @@ export default function App() {
                               <div className="space-y-0.5 text-[10px]">
                                 {j.details?.slice(0, 3).map((d, didx) => (
                                   <div key={didx} className="flex items-center gap-1.5">
-                                    <span className={`px-1 py-0.2 rounded font-mono font-bold ${
-                                      d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                                    }`}>
+                                    <span className={`px-1 py-0.2 rounded font-mono font-bold ${d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                      }`}>
                                       {d.debit > 0 ? 'D' : 'K'}
                                     </span>
                                     <span className="text-slate-600 truncate max-w-[120px]">{d.nama_akun}</span>
@@ -2021,61 +1998,60 @@ export default function App() {
                         </tr>
                       ) : (
                         dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'DISTRIBUSI_PENJUALAN').map((j) => (
-                        <tr key={j.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3">
-                            <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
-                            <span className="text-[11px] text-slate-400">{j.tanggal}</span>
-                          </td>
-                          <td className="py-3">
-                            <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
-                            <span className="text-[11px] text-slate-500">{j.keterangan}</span>
-                          </td>
-                          <td className="py-3">
-                            <div className="space-y-1 text-[11px]">
-                              {j.details.map((d, didx) => (
-                                <div key={didx} className="flex items-center gap-2">
-                                  <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold ${
-                                    d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                                  }`}>
-                                    {d.debit > 0 ? 'DEBIT' : 'KREDIT'}
-                                  </span>
-                                  <span className="text-slate-600">{d.nama_akun}</span>
-                                  <span className="font-mono text-slate-800 font-semibold">
-                                    {formatIDR(d.debit > 0 ? d.debit : d.kredit)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-3 text-right font-extrabold text-slate-900 text-sm">
-                            {formatIDR(j.total_nominal)}
-                          </td>
-                          <td className="py-3 text-right pr-2">
-                            {currentUser?.role === 'super_admin' ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                  title="Edit Transaksi"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3">
+                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
+                              <span className="text-[11px] text-slate-500">{j.keterangan}</span>
+                            </td>
+                            <td className="py-3">
+                              <div className="space-y-1 text-[11px]">
+                                {j.details.map((d, didx) => (
+                                  <div key={didx} className="flex items-center gap-2">
+                                    <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-bold ${d.debit > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                                      }`}>
+                                      {d.debit > 0 ? 'DEBIT' : 'KREDIT'}
+                                    </span>
+                                    <span className="text-slate-600">{d.nama_akun}</span>
+                                    <span className="font-mono text-slate-800 font-semibold">
+                                      {formatIDR(d.debit > 0 ? d.debit : d.kredit)}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
-                            ) : (
-                              <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                Tervalidasi
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      )))}
+                            </td>
+                            <td className="py-3 text-right font-extrabold text-slate-900 text-sm">
+                              {formatIDR(j.total_nominal)}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              {currentUser?.role === 'super_admin' ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditTransaction(j)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteTransaction(j)}
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  Tervalidasi
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )))}
                     </tbody>
                   </table>
                 </div>
@@ -2123,9 +2099,8 @@ export default function App() {
                         <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
                           {prod.kategori || 'Kerupuk'}
                         </span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          stok > 50 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-600'
-                        }`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stok > 50 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-600'
+                          }`}>
                           Stok: {stok} {prod.satuan}
                         </span>
                       </div>
@@ -2268,49 +2243,49 @@ export default function App() {
                         </tr>
                       ) : (
                         dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERALATAN').map((j) => (
-                        <tr key={j.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3">
-                            <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
-                            <span className="text-[11px] text-slate-400">{j.tanggal}</span>
-                          </td>
-                          <td className="py-3">
-                            <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
-                            <span className="text-[11px] text-slate-500">{j.keterangan}</span>
-                          </td>
-                          <td className="py-3 text-xs">
-                            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono text-[11px]">
-                              Debit: Peralatan & Mesin (1501) | Kredit: Kas (1001)
-                            </span>
-                          </td>
-                          <td className="py-3 text-right font-extrabold text-slate-900">
-                            {formatIDR(j.total_nominal)}
-                          </td>
-                          <td className="py-3 text-right pr-2">
-                            {currentUser?.role === 'super_admin' ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => openEditTransaction(j)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                  title="Edit Transaksi"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => openDeleteTransaction(j)}
-                                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                Tervalidasi
+                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3">
+                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="font-semibold text-slate-800 text-xs block">{j.referensi}</span>
+                              <span className="text-[11px] text-slate-500">{j.keterangan}</span>
+                            </td>
+                            <td className="py-3 text-xs">
+                              <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono text-[11px]">
+                                Debit: Peralatan & Mesin (1501) | Kredit: Kas (1001)
                               </span>
-                            )}
-                          </td>
-                        </tr>
-                      )))}
+                            </td>
+                            <td className="py-3 text-right font-extrabold text-slate-900">
+                              {formatIDR(j.total_nominal)}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              {currentUser?.role === 'super_admin' ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditTransaction(j)}
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteTransaction(j)}
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  Tervalidasi
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )))}
                     </tbody>
                   </table>
                 </div>
@@ -2382,53 +2357,53 @@ export default function App() {
                         </tr>
                       ) : (
                         dashboardData.recentJournals.map((j) => {
-                        const kasDetail = j.details.find(d => d.kode_akun === '1001');
-                        if (!kasDetail) return null;
-                        return (
-                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-3">
-                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
-                              <span className="text-[11px] text-slate-400">{j.tanggal}</span>
-                            </td>
-                            <td className="py-3 text-xs text-slate-700">{j.keterangan}</td>
-                            <td className="py-3">
-                              <span className="text-[11px] font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                                {j.tipe_transaksi}
-                              </span>
-                            </td>
-                            <td className="py-3 text-right font-bold text-emerald-600">
-                              {kasDetail.debit > 0 ? formatIDR(kasDetail.debit) : '-'}
-                            </td>
-                            <td className="py-3 text-right font-bold text-rose-500">
-                              {kasDetail.kredit > 0 ? formatIDR(kasDetail.kredit) : '-'}
-                            </td>
-                            <td className="py-3 text-right pr-2">
-                              {currentUser?.role === 'super_admin' ? (
-                                <div className="flex items-center justify-end gap-1">
-                                  <button
-                                    onClick={() => openEditTransaction(j)}
-                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                    title="Edit Transaksi"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => openDeleteTransaction(j)}
-                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                                    title="Hapus Transaksi"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                  Tervalidasi
+                          const kasDetail = j.details.find(d => d.kode_akun === '1001');
+                          if (!kasDetail) return null;
+                          return (
+                            <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="py-3">
+                                <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                                <span className="text-[11px] text-slate-400">{j.tanggal}</span>
+                              </td>
+                              <td className="py-3 text-xs text-slate-700">{j.keterangan}</td>
+                              <td className="py-3">
+                                <span className="text-[11px] font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                                  {j.tipe_transaksi}
                                 </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      }))}
+                              </td>
+                              <td className="py-3 text-right font-bold text-emerald-600">
+                                {kasDetail.debit > 0 ? formatIDR(kasDetail.debit) : '-'}
+                              </td>
+                              <td className="py-3 text-right font-bold text-rose-500">
+                                {kasDetail.kredit > 0 ? formatIDR(kasDetail.kredit) : '-'}
+                              </td>
+                              <td className="py-3 text-right pr-2">
+                                {currentUser?.role === 'super_admin' ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <button
+                                      onClick={() => openEditTransaction(j)}
+                                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                      title="Edit Transaksi"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => openDeleteTransaction(j)}
+                                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                      title="Hapus Transaksi"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                    Tervalidasi
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        }))}
                     </tbody>
                   </table>
                 </div>
@@ -2453,7 +2428,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
+
                 {/* 1. NERACA (BALANCE SHEET) */}
                 <div className="dashboard-card p-6 flex flex-col justify-between">
                   <div>
@@ -2462,9 +2437,8 @@ export default function App() {
                         <h3 className="font-extrabold text-base text-slate-900">Neraca (Balance Sheet)</h3>
                         <p className="text-[11px] text-slate-400">Posisi Keuangan per {new Date().toISOString().slice(0, 10)}</p>
                       </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        metrics.isBalanced ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700'
-                      }`}>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${metrics.isBalanced ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700'
+                        }`}>
                         {metrics.isBalanced ? '✓ Seimbang (Balanced)' : 'Belum Seimbang'}
                       </span>
                     </div>
@@ -2664,11 +2638,10 @@ export default function App() {
                     <button
                       key={tab.id}
                       onClick={() => setReportFilterSection(tab.id)}
-                      className={`px-3.5 py-1.5 font-semibold rounded-full whitespace-nowrap transition-all border ${
-                        reportFilterSection === tab.id
+                      className={`px-3.5 py-1.5 font-semibold rounded-full whitespace-nowrap transition-all border ${reportFilterSection === tab.id
                           ? 'bg-[#191a23] dark:bg-emerald-600 text-white border-transparent shadow-sm'
                           : 'bg-white dark:bg-[#1a1b24] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       {tab.label}
                     </button>
@@ -2678,7 +2651,7 @@ export default function App() {
 
               {/* FORMAL PRINTABLE REPORT SHEET */}
               <div className="print-container bg-white dark:bg-[#14151c] text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-white/10 rounded-2xl p-6 sm:p-10 shadow-sm print:p-0 print:border-none print:shadow-none print:bg-white print:text-black space-y-8">
-                
+
                 {/* 1. KOP SURAT RESMI */}
                 <div className="border-b-4 border-double border-slate-800 dark:border-slate-300 pb-5">
                   <div className="flex items-center justify-between gap-4">
@@ -3188,15 +3161,14 @@ export default function App() {
                                     {util}%
                                   </td>
                                   <td className="px-3 py-2 text-center">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                      ped.status_piutang === 'Over Limit'
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ped.status_piutang === 'Over Limit'
                                         ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                                         : ped.status_piutang === 'Mendekati Limit'
-                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                        : ped.status_piutang === 'Lancar'
-                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                        : 'bg-slate-100 text-slate-800'
-                                    }`}>
+                                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                          : ped.status_piutang === 'Lancar'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                            : 'bg-slate-100 text-slate-800'
+                                      }`}>
                                       {ped.status_piutang || 'Lancar'}
                                     </span>
                                   </td>
@@ -3435,16 +3407,15 @@ export default function App() {
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Entitas Pabrik & Pengguna</h2>
                 </div>
-                
+
                 {/* Sub Tab Pills */}
                 <div className="flex items-center gap-2 bg-slate-200/60 p-1 rounded-full text-xs font-semibold">
                   <button
                     onClick={() => setSuperAdminSubTab('pabrik')}
-                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
-                      superAdminSubTab === 'pabrik'
+                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${superAdminSubTab === 'pabrik'
                         ? 'bg-[#191a23] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <Factory className="w-3.5 h-3.5" />
                     Entitas Pabrik ({factories.length})
@@ -3454,11 +3425,10 @@ export default function App() {
                       setSuperAdminSubTab('users');
                       loadUsers();
                     }}
-                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
-                      superAdminSubTab === 'users'
+                    className={`px-4 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${superAdminSubTab === 'users'
                         ? 'bg-[#191a23] text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <Users className="w-3.5 h-3.5" />
                     Manajemen Pengguna ({usersList.length})
@@ -3511,83 +3481,83 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {(dashboardData?.data?.factories || []).map((f) => (
-                      <div key={f.pabrik.id} className="dashboard-card p-6 flex flex-col justify-between group">
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                              P{f.pabrik.id}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => {
-                                  setEditPabrikForm({
-                                    id: f.pabrik.id,
-                                    nama_pabrik: f.pabrik.nama_pabrik,
-                                    alamat: f.pabrik.alamat || '',
-                                    telepon: f.pabrik.telepon || '',
-                                    penanggung_jawab: f.pabrik.penanggung_jawab || ''
-                                  });
-                                  setActiveModal('edit_pabrik');
-                                }}
-                                title="Edit Pabrik"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedPabrikToDelete(f.pabrik);
-                                  setActiveModal('delete_pabrik_confirm');
-                                }}
-                                title="Hapus Pabrik"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                        <div key={f.pabrik.id} className="dashboard-card p-6 flex flex-col justify-between group">
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                                P{f.pabrik.id}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditPabrikForm({
+                                      id: f.pabrik.id,
+                                      nama_pabrik: f.pabrik.nama_pabrik,
+                                      alamat: f.pabrik.alamat || '',
+                                      telepon: f.pabrik.telepon || '',
+                                      penanggung_jawab: f.pabrik.penanggung_jawab || ''
+                                    });
+                                    setActiveModal('edit_pabrik');
+                                  }}
+                                  title="Edit Pabrik"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedPabrikToDelete(f.pabrik);
+                                    setActiveModal('delete_pabrik_confirm');
+                                  }}
+                                  title="Hapus Pabrik"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <h3 className="font-extrabold text-lg text-slate-900 mb-1">{f.pabrik.nama_pabrik}</h3>
-                          <p className="text-xs text-slate-400 mb-1">{f.pabrik.alamat || 'Indonesia'}</p>
-                          <p className="text-[11px] text-slate-500 font-medium mb-4">
-                            PIC: <span className="text-slate-800 font-semibold">{f.pabrik.penanggung_jawab || '-'}</span> | Telp: <span className="font-mono">{f.pabrik.telepon || '-'}</span>
-                          </p>
 
-                          <div className="space-y-2 border-t border-slate-100 pt-3 text-xs">
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Saldo Kas:</span>
-                              <span className="font-bold text-slate-900">{formatIDR(f.kas)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Piutang Mengendap:</span>
-                              <span className="font-bold text-rose-500">{formatIDR(f.piutang)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Persediaan Gudang:</span>
-                              <span className="font-bold text-amber-600">{formatIDR(f.persediaan)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-500">Total Omset:</span>
-                              <span className="font-extrabold text-slate-900">{formatIDR(f.omset)}</span>
-                            </div>
-                            <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-slate-900">
-                              <span>Laba Bersih:</span>
-                              <span className="text-emerald-600">{formatIDR(f.labaBersih)}</span>
+                            <h3 className="font-extrabold text-lg text-slate-900 mb-1">{f.pabrik.nama_pabrik}</h3>
+                            <p className="text-xs text-slate-400 mb-1">{f.pabrik.alamat || 'Indonesia'}</p>
+                            <p className="text-[11px] text-slate-500 font-medium mb-4">
+                              PIC: <span className="text-slate-800 font-semibold">{f.pabrik.penanggung_jawab || '-'}</span> | Telp: <span className="font-mono">{f.pabrik.telepon || '-'}</span>
+                            </p>
+
+                            <div className="space-y-2 border-t border-slate-100 pt-3 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Saldo Kas:</span>
+                                <span className="font-bold text-slate-900">{formatIDR(f.kas)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Piutang Mengendap:</span>
+                                <span className="font-bold text-rose-500">{formatIDR(f.piutang)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Persediaan Gudang:</span>
+                                <span className="font-bold text-amber-600">{formatIDR(f.persediaan)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-500">Total Omset:</span>
+                                <span className="font-extrabold text-slate-900">{formatIDR(f.omset)}</span>
+                              </div>
+                              <div className="flex justify-between border-t border-slate-100 pt-2 font-bold text-slate-900">
+                                <span>Laba Bersih:</span>
+                                <span className="text-emerald-600">{formatIDR(f.labaBersih)}</span>
+                              </div>
                             </div>
                           </div>
+
+                          <button
+                            onClick={() => {
+                              setSelectedPabrikId(String(f.pabrik.id));
+                              setActiveTab('dashboard');
+                            }}
+                            className="mt-5 w-full py-2.5 text-xs font-semibold bg-[#191a23] text-white hover:bg-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            Buka Dashboard Pabrik Ini →
+                          </button>
                         </div>
-
-                        <button
-                          onClick={() => {
-                            setSelectedPabrikId(String(f.pabrik.id));
-                            setActiveTab('dashboard');
-                          }}
-                          className="mt-5 w-full py-2.5 text-xs font-semibold bg-[#191a23] text-white hover:bg-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
-                        >
-                          Buka Dashboard Pabrik Ini →
-                        </button>
-                      </div>
-                    ))}
+                      ))}
                     </div>
                   )}
                 </div>
@@ -3642,7 +3612,7 @@ export default function App() {
                   {/* Users Table */}
                   <div className="dashboard-card p-6">
                     <h3 className="font-bold text-sm text-slate-900 mb-4">Daftar Seluruh Pengguna & Hak Akses</h3>
-                    
+
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm">
                         <thead>
@@ -3666,10 +3636,10 @@ export default function App() {
                                 <td className="py-3.5 pl-2">
                                   <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
-                                      <img 
-                                        src="/default-avatar.png" 
-                                        alt={u.nama || 'User'} 
-                                        className="w-full h-full object-cover" 
+                                      <img
+                                        src="/default-avatar.png"
+                                        alt={u.nama || 'User'}
+                                        className="w-full h-full object-cover"
                                       />
                                     </div>
                                     <div>
@@ -3682,13 +3652,12 @@ export default function App() {
                                   @{u.username}
                                 </td>
                                 <td className="py-3.5">
-                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                    isSuper 
-                                      ? 'bg-slate-900 text-white' 
-                                      : isAdminPabrik 
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  }`}>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${isSuper
+                                      ? 'bg-slate-900 text-white'
+                                      : isAdminPabrik
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    }`}>
                                     {isSuper && <Shield className="w-3 h-3 text-amber-400" />}
                                     {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Pedagang'}
                                   </span>
@@ -3706,9 +3675,8 @@ export default function App() {
                                   )}
                                 </td>
                                 <td className="py-3.5">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                    u.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                                  }`}>
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${u.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                                    }`}>
                                     {u.status || 'aktif'}
                                   </span>
                                 </td>
@@ -3832,8 +3800,8 @@ export default function App() {
                   />
                 </div>
                 <span className="text-xs text-slate-400 self-end sm:self-auto">
-                  Menampilkan {checkpointsList.filter(c => 
-                    !checkpointSearch || 
+                  Menampilkan {checkpointsList.filter(c =>
+                    !checkpointSearch ||
                     c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
                     c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
                     c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
@@ -3844,14 +3812,14 @@ export default function App() {
               {/* Checkpoint Feed / Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {checkpointsList
-                  .filter(c => 
-                    !checkpointSearch || 
+                  .filter(c =>
+                    !checkpointSearch ||
                     c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
                     c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
                     c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
                   )
                   .map((cp) => (
-                    <div 
+                    <div
                       key={cp.id}
                       className="dashboard-card overflow-hidden flex flex-col justify-between border border-slate-200/80 dark:border-white/10 hover:shadow-lg transition-all"
                     >
@@ -3874,11 +3842,10 @@ export default function App() {
 
                           {/* Method Badge & Date Overlay */}
                           <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm ${
-                              cp.metode_bayar === 'tunai'
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm ${cp.metode_bayar === 'tunai'
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-amber-500 text-white'
-                            }`}>
+                              }`}>
                               {cp.metode_bayar === 'tunai' ? 'Bayar Tunai' : 'Titip Bon / Piutang'}
                             </span>
                           </div>
@@ -4028,11 +3995,10 @@ export default function App() {
               <div className="grid grid-cols-4 gap-1 p-1 bg-slate-200/70 dark:bg-[#1a1b24] rounded-2xl text-xs font-bold text-center">
                 <button
                   onClick={() => setPedagangSubTab('checkpoint_form')}
-                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
-                    pedagangSubTab === 'checkpoint_form'
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${pedagangSubTab === 'checkpoint_form'
                       ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <MapPin className="w-4 h-4 text-emerald-500" />
                   <span className="text-[10px] sm:text-xs">Drop Kerupuk</span>
@@ -4040,11 +4006,10 @@ export default function App() {
 
                 <button
                   onClick={() => setPedagangSubTab('checkpoint_history')}
-                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
-                    pedagangSubTab === 'checkpoint_history'
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${pedagangSubTab === 'checkpoint_history'
                       ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Camera className="w-4 h-4 text-sky-500" />
                   <span className="text-[10px] sm:text-xs">Riwayat Drop</span>
@@ -4052,11 +4017,10 @@ export default function App() {
 
                 <button
                   onClick={() => setPedagangSubTab('kartu_piutang')}
-                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
-                    pedagangSubTab === 'kartu_piutang'
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${pedagangSubTab === 'kartu_piutang'
                       ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Store className="w-4 h-4 text-amber-500" />
                   <span className="text-[10px] sm:text-xs">Hutang</span>
@@ -4064,11 +4028,10 @@ export default function App() {
 
                 <button
                   onClick={() => setPedagangSubTab('katalog')}
-                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${
-                    pedagangSubTab === 'katalog'
+                  className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center gap-1 ${pedagangSubTab === 'katalog'
                       ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm font-extrabold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Boxes className="w-4 h-4 text-indigo-500" />
                   <span className="text-[10px] sm:text-xs">Katalog</span>
@@ -4215,11 +4178,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setCheckpointForm({ ...checkpointForm, metode_bayar: 'piutang' })}
-                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                            checkpointForm.metode_bayar === 'piutang'
+                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${checkpointForm.metode_bayar === 'piutang'
                               ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
                               : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'
-                          }`}
+                            }`}
                         >
                           <Receipt className="w-4 h-4" />
                           <span>Titip Bon / Piutang</span>
@@ -4227,11 +4189,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setCheckpointForm({ ...checkpointForm, metode_bayar: 'tunai' })}
-                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                            checkpointForm.metode_bayar === 'tunai'
+                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${checkpointForm.metode_bayar === 'tunai'
                               ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
                               : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'
-                          }`}
+                            }`}
                         >
                           <Coins className="w-4 h-4" />
                           <span>Bayar Tunai Langsung</span>
@@ -4409,7 +4370,7 @@ export default function App() {
                           className="dashboard-card p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
                         >
                           <div className="flex items-center gap-3">
-                            <div 
+                            <div
                               onClick={() => cp.foto_bukti && setSelectedCheckpointPhoto(cp.foto_bukti)}
                               className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-white/10 shrink-0 border border-slate-200 cursor-pointer"
                             >
@@ -4426,11 +4387,10 @@ export default function App() {
                                 <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
                                   {cp.nama_warung}
                                 </h4>
-                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                                  cp.metode_bayar === 'tunai'
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${cp.metode_bayar === 'tunai'
                                     ? 'bg-emerald-100 text-emerald-700'
                                     : 'bg-amber-100 text-amber-700'
-                                }`}>
+                                  }`}>
                                   {cp.metode_bayar === 'tunai' ? 'Tunai' : 'Bon'}
                                 </span>
                               </div>
@@ -4820,8 +4780,8 @@ export default function App() {
                   onChange={(e) => {
                     const pid = e.target.value;
                     const prod = dashboardData?.produkList.find(p => String(p.id) === pid);
-                    setPersediaanForm({ 
-                      ...persediaanForm, 
+                    setPersediaanForm({
+                      ...persediaanForm,
                       produk_id: pid,
                       harga_beli: prod ? String(prod.harga_beli) : ''
                     });
