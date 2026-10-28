@@ -1156,7 +1156,18 @@ export default function App() {
         {/* Bottom Card & Controls */}
         <div className="space-y-4">
           {/* Quick Action Button */}
-          {currentUser?.role !== 'pedagang' && (
+          {currentUser?.role === 'super_admin' ? (
+            <button
+              onClick={() => {
+                setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
+                setActiveModal('tambah_pabrik');
+              }}
+              className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Building2 className="w-3.5 h-3.5 text-white" />
+              <span>Tambah Pabrik Baru</span>
+            </button>
+          ) : currentUser?.role === 'admin_pabrik' ? (
             <button
               onClick={() => setActiveModal('distribusi')}
               className="w-full py-2.5 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
@@ -1164,7 +1175,7 @@ export default function App() {
               <Plus className="w-3.5 h-3.5 text-emerald-400" />
               <span>Catat Distribusi</span>
             </button>
-          )}
+          ) : null}
 
           {/* Theme Mode Toggle Pill */}
           <div className="bg-slate-100 dark:bg-[#1a1b24] dark:border dark:border-white/10 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -1277,15 +1288,26 @@ export default function App() {
 
           {/* User Profile & Actions */}
           <div className="flex items-center gap-3">
-            {currentUser?.role !== 'pedagang' && (
+            {currentUser?.role === 'super_admin' ? (
+              <button
+                onClick={() => {
+                  setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
+                  setActiveModal('tambah_pabrik');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Tambah Pabrik</span>
+              </button>
+            ) : currentUser?.role === 'admin_pabrik' ? (
               <button
                 onClick={() => setActiveModal('distribusi')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Transaksi Baru</span>
               </button>
-            )}
+            ) : null}
 
             {/* Notification bell */}
             <button className="w-9 h-9 rounded-full bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-sm relative">
@@ -1748,13 +1770,15 @@ export default function App() {
                     <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per pedagang</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActiveModal('tambah_pedagang')}
-                      className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-all flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Tambah Pedagang
-                    </button>
+                    {currentUser?.role === 'admin_pabrik' && (
+                      <button
+                        onClick={() => setActiveModal('tambah_pedagang')}
+                        className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-all flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah Pedagang
+                      </button>
+                    )}
                     <button className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center gap-1.5">
                       <SlidersHorizontal className="w-3.5 h-3.5" />
                       Filters
@@ -1966,13 +1990,15 @@ export default function App() {
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Distribusi & Piutang</h2>
                 </div>
-                <button
-                  onClick={() => setActiveModal('distribusi')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Drop Barang ke Pedagang
-                </button>
+                {currentUser?.role === 'admin_pabrik' && (
+                  <button
+                    onClick={() => setActiveModal('distribusi')}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Drop Barang ke Pedagang
+                  </button>
+                )}
               </div>
 
               {/* Jurnal Transaksi Distribusi List */}
@@ -2067,20 +2093,24 @@ export default function App() {
                   <h2 className="text-xl font-extrabold text-slate-900">Persediaan Barang</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveModal('beli_persediaan')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Belanja Stok Baru
-                  </button>
-                  <button
-                    onClick={() => setActiveModal('tambah_produk')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                  >
-                    <PackagePlus className="w-3.5 h-3.5" />
-                    Tambah Produk Baru
-                  </button>
+                  {currentUser?.role === 'admin_pabrik' && (
+                    <>
+                      <button
+                        onClick={() => setActiveModal('beli_persediaan')}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Belanja Stok Baru
+                      </button>
+                      <button
+                        onClick={() => setActiveModal('tambah_produk')}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                      >
+                        <PackagePlus className="w-3.5 h-3.5" />
+                        Tambah Produk Baru
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -2301,22 +2331,15 @@ export default function App() {
                   <h2 className="text-xl font-extrabold text-slate-900">Kas & Perbankan</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                  {currentUser?.role === 'super_admin' && (
+                  {currentUser?.role === 'admin_pabrik' && (
                     <button
-                      onClick={() => setActiveModal('modal_awal')}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 shadow-sm"
+                      onClick={() => setActiveModal('setoran')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      Penyetoran Modal
+                      <ArrowDownLeft className="w-3.5 h-3.5" />
+                      Terima Setoran Pedagang
                     </button>
                   )}
-                  <button
-                    onClick={() => setActiveModal('setoran')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                  >
-                    <ArrowDownLeft className="w-3.5 h-3.5" />
-                    Terima Setoran Pedagang
-                  </button>
                 </div>
               </div>
 
