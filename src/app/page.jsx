@@ -786,8 +786,8 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-2.5">
           {currentUser?.role === 'super_admin' ? (
             <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/10">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pl-2 hidden sm:inline flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-emerald-500" /> Filter:
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pl-2 hidden sm:inline">
+                Filter:
               </span>
               <div className="flex items-center gap-1 overflow-x-auto max-w-full">
                 <button
