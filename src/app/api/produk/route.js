@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server';
 import { query, queryAll } from '@/supabase';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-requested-with'
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const pabrikId = searchParams.get('pabrik_id');
 
     if (!pabrikId) {
-      return NextResponse.json({ success: false, error: 'pabrik_id diperlukan' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'pabrik_id diperlukan' }, { status: 400, headers: corsHeaders });
     }
 
     const data = await queryAll(`
@@ -16,9 +26,9 @@ export async function GET(request) {
       ORDER BY nama_produk ASC
     `, [Number(pabrikId)]);
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data }, { headers: corsHeaders });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
   }
 }
 

@@ -4,6 +4,16 @@ import { distribusiBarang, setorPembayaranPedagang } from '@/accounting';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-requested-with'
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // Helper simpan base64 foto ke public/uploads/
 function saveBase64Image(base64Str) {
   if (!base64Str || !base64Str.startsWith('data:image')) {
@@ -117,10 +127,10 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       checkPoints
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('GET /api/checkpoint error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -229,9 +239,9 @@ export async function POST(request) {
       fotoUrl: finalFotoUrl,
       saldoPiutangSaatIni: updatedPedagang?.saldo_piutang || 0,
       metodeBayar: metode_bayar || 'piutang'
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('POST /api/checkpoint error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500, headers: corsHeaders });
   }
 }
