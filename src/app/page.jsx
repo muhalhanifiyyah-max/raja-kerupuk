@@ -66,11 +66,13 @@ const parseCheckpointKeterangan = (raw) => {
     try {
       const parsed = JSON.parse(raw);
       if (parsed.tipe === 'CHECKPOINT_DROP') {
+        const m = (parsed.metode_bayar || 'piutang').toLowerCase().trim();
+        const isTunai = m === 'tunai' || m === 'lunas' || m === 'cash';
         return {
           isCheckpoint: true,
           nama_warung: parsed.nama_warung || 'Warung Rekanan',
           alamat_warung: parsed.alamat_warung || '',
-          metode_bayar: parsed.metode_bayar || 'piutang',
+          metode_bayar: isTunai ? 'tunai' : 'piutang',
           catatan: parsed.catatan || '',
           foto_bukti: parsed.foto_bukti || null,
           text: `Drop di ${parsed.nama_warung || 'Warung'}${parsed.catatan ? ` (${parsed.catatan})` : ''}`
@@ -129,6 +131,7 @@ export default function App() {
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   const [checkpointSubmitting, setCheckpointSubmitting] = useState(false);
   const [checkpointSearch, setCheckpointSearch] = useState('');
+  const [checkpointPaymentFilter, setCheckpointPaymentFilter] = useState('all'); // 'all' | 'tunai' | 'piutang'
 
   // Form states
   const [modalForm, setModalForm] = useState({ nominal: '', tanggal: '', keterangan: '' });
@@ -2048,10 +2051,10 @@ export default function App() {
                             />
                             <div className="absolute top-2 left-2 flex items-center gap-1.5">
                               <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-sm ${cp.metode_bayar === 'tunai'
-                                  ? 'bg-amber-500 text-white'
-                                  : 'bg-emerald-600 text-white'
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-amber-500 text-white'
                                 }`}>
-                                {cp.metode_bayar === 'tunai' ? 'Tunai' : 'Piutang'}
+                                {cp.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                               </span>
                             </div>
                             <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-sm text-[10px] text-white flex items-center gap-1 font-mono">
@@ -2062,10 +2065,10 @@ export default function App() {
                         ) : (
                           <div className="relative h-20 w-full bg-slate-50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-3">
                             <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${cp.metode_bayar === 'tunai'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300'
                               }`}>
-                              {cp.metode_bayar === 'tunai' ? 'Tunai' : 'Piutang'}
+                              {cp.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                             </span>
                             <span className="text-[10px] text-slate-400 flex items-center gap-1">
                               <ImageIcon className="w-3.5 h-3.5 opacity-50" />
@@ -2203,8 +2206,8 @@ export default function App() {
                                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             Check-Point: {cpInfo.nama_warung}
                                           </span>
-                                          <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${cpInfo.metode_bayar === 'tunai' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                                            {cpInfo.metode_bayar === 'tunai' ? 'Tunai' : 'Piutang'}
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${cpInfo.metode_bayar === 'tunai' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {cpInfo.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                                           </span>
                                           {cpInfo.foto_bukti && (
                                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200">
@@ -2361,8 +2364,8 @@ export default function App() {
                                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             Check-Point: {cpInfo.nama_warung}
                                           </span>
-                                          <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${cpInfo.metode_bayar === 'tunai' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                                            {cpInfo.metode_bayar === 'tunai' ? 'Tunai' : 'Piutang'}
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${cpInfo.metode_bayar === 'tunai' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {cpInfo.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                                           </span>
                                           {cpInfo.foto_bukti && (
                                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200">
@@ -2671,8 +2674,8 @@ export default function App() {
                                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             Check-Point: {cpInfo.nama_warung}
                                           </span>
-                                          <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${cpInfo.metode_bayar === 'tunai' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                                            {cpInfo.metode_bayar === 'tunai' ? 'Tunai' : 'Piutang'}
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${cpInfo.metode_bayar === 'tunai' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                            {cpInfo.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                                           </span>
                                           {cpInfo.foto_bukti && (
                                             <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200">
@@ -4222,15 +4225,51 @@ export default function App() {
 
               {/* Search & Filter */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={checkpointSearch}
-                    onChange={(e) => setCheckpointSearch(e.target.value)}
-                    placeholder="Cari warung, pedagang, atau produk..."
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:border-slate-800 text-slate-800 dark:text-white"
-                  />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-xl">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={checkpointSearch}
+                      onChange={(e) => setCheckpointSearch(e.target.value)}
+                      placeholder="Cari warung, pedagang, atau produk..."
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:border-slate-800 text-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  {/* Filter Status Bayar */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-xl shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCheckpointPaymentFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${checkpointPaymentFilter === 'all'
+                        ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                        }`}
+                    >
+                      Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckpointPaymentFilter('tunai')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${checkpointPaymentFilter === 'tunai'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-emerald-600 dark:text-slate-400'
+                        }`}
+                    >
+                      Lunas (Tunai)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckpointPaymentFilter('piutang')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${checkpointPaymentFilter === 'piutang'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-amber-600 dark:text-slate-400'
+                        }`}
+                    >
+                      Titip Bon (Piutang)
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -4259,12 +4298,14 @@ export default function App() {
                   )}
 
                   <span className="text-xs text-slate-400 whitespace-nowrap">
-                    Menampilkan {checkpointsList.filter(c =>
-                      !checkpointSearch ||
-                      c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                      c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                      c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
-                    ).length} rekaman drop
+                    Menampilkan {checkpointsList.filter(c => {
+                      const matchSearch = !checkpointSearch ||
+                        c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                        c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                        c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase());
+                      const matchPay = checkpointPaymentFilter === 'all' || c.metode_bayar === checkpointPaymentFilter;
+                      return matchSearch && matchPay;
+                    }).length} rekaman drop
                   </span>
                 </div>
               </div>
@@ -4272,12 +4313,14 @@ export default function App() {
               {/* Checkpoint Feed / Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {checkpointsList
-                  .filter(c =>
-                    !checkpointSearch ||
-                    c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                    c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
-                    c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase())
-                  )
+                  .filter(c => {
+                    const matchSearch = !checkpointSearch ||
+                      c.nama_warung?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                      c.nama_pedagang?.toLowerCase().includes(checkpointSearch.toLowerCase()) ||
+                      c.nama_produk?.toLowerCase().includes(checkpointSearch.toLowerCase());
+                    const matchPay = checkpointPaymentFilter === 'all' || c.metode_bayar === checkpointPaymentFilter;
+                    return matchSearch && matchPay;
+                  })
                   .map((cp) => (
                     <div
                       key={cp.id}
@@ -4303,10 +4346,10 @@ export default function App() {
                           {/* Method Badge & Date Overlay */}
                           <div className="absolute top-3 left-3 flex items-center gap-1.5">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm ${cp.metode_bayar === 'tunai'
-                              ? 'bg-emerald-500 text-white'
+                              ? 'bg-emerald-600 text-white'
                               : 'bg-amber-500 text-white'
                               }`}>
-                              {cp.metode_bayar === 'tunai' ? 'Bayar Tunai' : 'Titip Bon / Piutang'}
+                              {cp.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                             </span>
                           </div>
 
@@ -4847,11 +4890,11 @@ export default function App() {
                                 <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
                                   {cp.nama_warung}
                                 </h4>
-                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${cp.metode_bayar === 'tunai'
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-amber-100 text-amber-700'
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${cp.metode_bayar === 'tunai'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : 'bg-amber-100 text-amber-800 border-amber-300'
                                   }`}>
-                                  {cp.metode_bayar === 'tunai' ? 'Tunai' : 'Bon'}
+                                  {cp.metode_bayar === 'tunai' ? 'Lunas (Tunai)' : 'Titip Bon / Piutang'}
                                 </span>
                               </div>
                               <p className="text-xs text-slate-500">{cp.alamat_warung || 'Alamat warung'}</p>

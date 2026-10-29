@@ -322,9 +322,28 @@ async function fallbackPostgrest(sql, params = []) {
       const targetId = idMatch ? (idMatch[1] === '?' ? params[params.length - 1] : idMatch[1]) : null;
 
       const updates = {};
-      const setParts = setClause.split(',');
+      // Parse setClause respecting quotes (agar JSON string yang mengandung koma tidak terpotong)
+      const setParts = [];
+      let curPart = '';
+      let inQuotes = false;
+      for (let i = 0; i < setClause.length; i++) {
+        const ch = setClause[i];
+        if (ch === "'" && setClause[i - 1] !== "\\") {
+          inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          setParts.push(curPart.trim());
+          curPart = '';
+          continue;
+        }
+        curPart += ch;
+      }
+      if (curPart.trim()) setParts.push(curPart.trim());
+
       for (const part of setParts) {
-        const [k, v] = part.split('=').map(s => s && s.trim());
+        const eqIdx = part.indexOf('=');
+        if (eqIdx === -1) continue;
+        const k = part.substring(0, eqIdx).trim();
+        const v = part.substring(eqIdx + 1).trim();
         if (k && v) {
           let cleanVal = v;
           if (cleanVal.startsWith("'") && cleanVal.endsWith("'")) {

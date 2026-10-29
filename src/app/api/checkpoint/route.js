@@ -127,7 +127,10 @@ export async function GET(request) {
         longitude: meta.longitude || null,
         akurasi_meter: meta.akurasi || null,
         foto_bukti: meta.foto_bukti || null,
-        metode_bayar: meta.metode_bayar || 'piutang',
+        metode_bayar: (() => {
+          const m = (meta.metode_bayar || 'piutang').toLowerCase().trim();
+          return (m === 'tunai' || m === 'lunas' || m === 'cash') ? 'tunai' : 'piutang';
+        })(),
         catatan: meta.catatan || (meta.nama_warung ? '' : r.keterangan)
       };
     });
@@ -196,6 +199,11 @@ export async function POST(request) {
       finalFotoUrl = saveBase64Image(foto_bukti);
     }
 
+    // Normalisasi metode bayar: dukung 'tunai', 'lunas', dan 'cash'
+    const rawMethod = (metode_bayar || '').toLowerCase().trim();
+    const isTunai = rawMethod === 'tunai' || rawMethod === 'lunas' || rawMethod === 'cash';
+    const normalizedMetodeBayar = isTunai ? 'tunai' : 'piutang';
+
     // Susun metadata checkpoint
     const metaCheckpoint = {
       tipe: 'CHECKPOINT_DROP',
@@ -206,7 +214,7 @@ export async function POST(request) {
       akurasi: akurasi_meter ? Number(akurasi_meter) : null,
       foto_bukti: finalFotoUrl,
       catatan: catatan || '',
-      metode_bayar: metode_bayar || 'piutang'
+      metode_bayar: normalizedMetodeBayar
     };
 
     const keteranganStr = JSON.stringify(metaCheckpoint);
@@ -221,9 +229,9 @@ export async function POST(request) {
       keterangan: keteranganStr
     });
 
-    // 2. Jika metode bayar tunai / cash di tempat, langsung catat setoran pembayaran
+    // 2. Jika metode bayar tunai / lunas di tempat, langsung catat setoran pembayaran otomatis
     let setorResult = null;
-    if (metode_bayar === 'tunai') {
+    if (normalizedMetodeBayar === 'tunai') {
       try {
         setorResult = await setorPembayaranPedagang(pabrikIdNum, {
           pedagangId: pedagangIdNum,
@@ -241,12 +249,12 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Check-point drop ${qtyNum} ${prod.satuan || 'Bal'} ${prod.nama_produk} di ${nama_warung || 'Warung'} berhasil dicatat!`,
+      message: `Check-point drop ${qtyNum} ${prod.satuan || 'Bal'} ${prod.nama_produk} di ${nama_warung || 'Warung'} berhasil dicatat (${normalizedMetodeBayar === 'tunai' ? 'LUNAS TUNAI' : 'TITIP BON/PIUTANG'})!`,
       distribusiId: distResult?.jurnalId,
       nomorBukti: distResult?.nomorBukti,
       fotoUrl: finalFotoUrl,
       saldoPiutangSaatIni: updatedPedagang?.saldo_piutang || 0,
-      metodeBayar: metode_bayar || 'piutang'
+      metodeBayar: normalizedMetodeBayar
     }, { headers: corsHeaders });
   } catch (error) {
     console.error('POST /api/checkpoint error:', error);
