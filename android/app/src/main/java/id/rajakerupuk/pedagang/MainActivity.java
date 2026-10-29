@@ -3,7 +3,6 @@ package id.rajakerupuk.pedagang;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Window;
-import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import androidx.core.splashscreen.SplashScreen;
@@ -17,8 +16,14 @@ public class MainActivity extends BridgeActivity {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
 
-        // Atur warna status bar awal agar persis sama dengan navbar (#1c1c1e)
-        updateSystemBars("#1c1c1e", false);
+        // Atur agar webview merender edge-to-edge di belakang status bar secara penuh
+        Window window = getWindow();
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+
+        // Set style icon status bar awal (false = teks putih untuk latar gelap)
+        updateStatusBars(false);
 
         // Daftarkan antarmuka JavaScript agar aplikasi web dapat menyinkronkan status bar saat tema berganti
         try {
@@ -30,7 +35,7 @@ public class MainActivity extends BridgeActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                updateSystemBars(colorHex, isLight);
+                                updateStatusBars(isLight);
                             }
                         });
                     }
@@ -41,15 +46,9 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void updateSystemBars(String colorHex, boolean isLight) {
+    private void updateStatusBars(boolean isLight) {
         try {
             Window window = getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            int color = Color.parseColor(colorHex);
-            window.setStatusBarColor(color);
-            window.setNavigationBarColor(color);
-
             WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(window, window.getDecorView());
             if (insetsController != null) {
                 insetsController.setAppearanceLightStatusBars(isLight);

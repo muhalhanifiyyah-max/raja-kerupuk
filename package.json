@@ -12,6 +12,7 @@
     "@capacitor/camera": "^8.2.6",
     "@capacitor/core": "^8.5.3",
     "@capacitor/geolocation": "^8.2.4",
+    "@capacitor/ios": "^8.6.0",
     "lucide-react": "^1.59.0",
     "next": "^16.4.2",
     "react": "^19.3.1",

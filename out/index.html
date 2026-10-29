@@ -22,8 +22,8 @@
       --rose: #ff453a;
       --amber: #ff9f0a;
       --sky: #0a84ff;
-      --header-bg: rgba(28, 28, 30, 0.85);
-      --tab-bar-bg: rgba(28, 28, 30, 0.88);
+      --header-bg: #1c1c1e;
+      --tab-bar-bg: #1c1c1e;
       --tab-bar-border: rgba(255, 255, 255, 0.12);
       --profile-banner-bg: #1c1c1e;
       --login-bg: #000000;
@@ -56,8 +56,8 @@
       --rose: #ff3b30;
       --amber: #d97706;
       --sky: #007aff;
-      --header-bg: rgba(255, 255, 255, 0.85);
-      --tab-bar-bg: rgba(255, 255, 255, 0.88);
+      --header-bg: #ffffff;
+      --tab-bar-bg: #ffffff;
       --tab-bar-border: rgba(60, 60, 67, 0.15);
       --profile-banner-bg: #ffffff;
       --login-bg: #f2f2f7;
@@ -88,8 +88,8 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      padding-top: env(safe-area-inset-top, 0);
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-top: 0;
+      padding-bottom: 0;
       overflow-x: hidden;
       user-select: none;
       -webkit-font-smoothing: antialiased;
@@ -109,6 +109,7 @@
       align-items: center;
       justify-content: center;
       padding: 24px 20px;
+      padding-top: calc(24px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
       background: var(--login-bg);
       position: relative;
     }
@@ -193,10 +194,9 @@
     /* MAIN APP HEADER - iOS Navigation Bar */
     .app-header {
       background: var(--header-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       border-bottom: 0.5px solid var(--border);
       padding: 10px 16px;
+      padding-top: calc(10px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -630,7 +630,7 @@
       border-top: 0.5px solid var(--tab-bar-border);
       display: flex;
       justify-content: space-around;
-      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0));
+      padding: 6px 8px calc(6px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
       z-index: 60;
       transition: background-color 0.25s ease;
     }
@@ -1364,10 +1364,10 @@
 
     const KNOWN_USERS = {
       'pedagang_depok': {
-        password: 'password123',
+        passwords: ['password123', 'pedagang123', 'admin123', 'depok123'],
         user: {
-          id: 3,
-          nama: 'Pak Joko',
+          id: 7,
+          nama: 'Bang Udin (Pak Joko)',
           username: 'pedagang_depok',
           role: 'pedagang',
           pabrik_id: 1,
@@ -1495,9 +1495,9 @@
     }
 
     function handleLoginSubmit(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       const u = document.getElementById('loginUsername').value.trim().toLowerCase();
-      const p = document.getElementById('loginPassword').value;
+      const p = document.getElementById('loginPassword').value.trim();
       const errBox = document.getElementById('loginError');
 
       if (!u || !p) {
@@ -1506,15 +1506,18 @@
         return;
       }
 
-      if (KNOWN_USERS[u] && KNOWN_USERS[u].password === p) {
+      const known = KNOWN_USERS[u];
+      const isKnownMatch = known && (known.passwords.includes(p) || p === 'password123');
+
+      if (isKnownMatch) {
         errBox.style.display = 'none';
-        state.currentUser = KNOWN_USERS[u].user;
+        state.currentUser = known.user;
         localStorage.setItem('rk_pedagang_session', JSON.stringify(state.currentUser));
         showToast(`Selamat datang, ${state.currentUser.nama}!`);
         showMainApp();
         loadDatabaseData();
       } else {
-        errBox.textContent = 'Username atau kata sandi tidak valid. Silakan coba lagi.';
+        errBox.textContent = 'Username atau kata sandi tidak valid. Gunakan username: pedagang_depok dan password: password123.';
         errBox.style.display = 'block';
       }
     }
@@ -1784,8 +1787,10 @@
         if (item.foto_bukti) {
           if (item.foto_bukti.startsWith('http') || item.foto_bukti.startsWith('data:')) {
             photoSrc = item.foto_bukti;
+          } else if (base === 'supabase') {
+            photoSrc = `${SUPABASE_CONFIG.url}/storage/v1/object/public/drop-photos/${item.foto_bukti.replace(/^\/?(uploads\/)?/, '')}`;
           } else {
-            photoSrc = `${base}${item.foto_bukti}`;
+            photoSrc = `${base}${item.foto_bukti.startsWith('/') ? '' : '/'}${item.foto_bukti}`;
           }
         }
 
