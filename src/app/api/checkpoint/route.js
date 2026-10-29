@@ -14,8 +14,8 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// Helper simpan base64 foto ke public/uploads/
-function saveBase64Image(base64Str) {
+// Helper simpan base64 foto ke Supabase Storage bucket 'drop-photos' (atau fallback ke public/uploads)
+async function saveBase64Image(base64Str) {
   if (!base64Str || typeof base64Str !== 'string') return null;
   if (!base64Str.startsWith('data:image')) {
     return base64Str; // sudah berupa URL atau path
@@ -34,8 +34,32 @@ function saveBase64Image(base64Str) {
 
     const buffer = Buffer.from(dataPart, 'base64');
     const filename = `drop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 
+    // Coba upload langsung ke Supabase Storage bucket 'drop-photos'
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://lvkqfctwsgtjwrbxwgpu.supabase.co';
+    const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (supabaseUrl && serviceKey) {
+      try {
+        const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/drop-photos/${filename}`, {
+          method: 'POST',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': `image/${ext === 'png' ? 'png' : 'jpeg'}`
+          },
+          body: buffer
+        });
+
+        if (uploadRes.ok) {
+          return `${supabaseUrl}/storage/v1/object/public/drop-photos/${filename}`;
+        }
+      } catch (storageErr) {
+        console.warn('Gagal upload ke Supabase Storage, fallback lokal:', storageErr.message);
+      }
+    }
+
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -196,7 +220,7 @@ export async function POST(request) {
     // Simpan foto bukti jika ada
     let finalFotoUrl = null;
     if (foto_bukti) {
-      finalFotoUrl = saveBase64Image(foto_bukti);
+      finalFotoUrl = await saveBase64Image(foto_bukti);
     }
 
     // Normalisasi metode bayar: dukung 'tunai', 'lunas', dan 'cash'

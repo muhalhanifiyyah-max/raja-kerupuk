@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Raja Kerupuk Pedagang</title>
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --bg: #0f1015;
+      --surface: #191a23;
+      --surface-light: #242738;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --sky: #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    .screen {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+    }
+
+    /* LOGIN SCREEN */
+    #screen-login {
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      background: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.12) 0%, rgba(15, 16, 21, 1) 75%);
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .login-logo-wrapper {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .login-logo {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: #191a23;
+      padding: 6px;
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(16, 185, 129, 0.2);
+      object-fit: cover;
+      display: inline-block;
+    }
+
+    .login-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      margin-top: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-error {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fecdd3;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .quick-login-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px dashed rgba(16, 185, 129, 0.4);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 16px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .quick-login-btn:active {
+      transform: scale(0.98);
+      background: rgba(16, 185, 129, 0.2);
+    }
+
+    /* MAIN APP HEADER */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--surface-light);
+      object-fit: cover;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .btn-logout {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Content Area */
+    .app-content {
+      flex: 1;
+      padding: 16px;
+      padding-bottom: 95px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Profile Banner */
+    .profile-banner {
+      background: linear-gradient(135deg, #191a23 0%, #25283c 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      object-fit: cover;
+      background: #000;
+    }
+
+    .profile-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .profile-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+    }
+
+    .form-select option {
+      background: #191a23;
+      color: #fff;
+    }
+
+    /* Counter Control */
+    .counter-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-counter {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .counter-value {
+      flex: 1;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 10px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: #fff;
+    }
+
+    /* Payment Option Buttons */
+    .payment-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .btn-pay-option {
+      padding: 12px 8px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: var(--surface-light);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      width: 100%;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-pay-option * {
+      pointer-events: none;
+    }
+
+    .btn-pay-option.active.piutang {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: #f59e0b;
+      color: #fbbf24;
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-pay-option.active.tunai {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #10b981;
+      color: #34d399;
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Sensor Boxes */
+    .sensor-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .sensor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .sensor-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-sensor {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-light);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .photo-preview {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      object-fit: cover;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+
+    .total-box {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .total-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .total-amount {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      border-radius: 16px;
+      border: none;
+      background: var(--primary);
+      color: #000;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+      transition: transform 0.1s;
+    }
+
+    .btn-submit:active {
+      transform: scale(0.98);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #14151c;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0));
+      z-index: 60;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 6px 0;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-icon {
+      font-size: 18px;
+    }
+
+    /* History & Metrics */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .history-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .history-info {
+      flex: 1;
+    }
+
+    .history-warung {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .history-detail {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .history-total {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .metric-card.alert {
+      border-left: 4px solid var(--rose);
+    }
+
+    .metric-card.success {
+      border-left: 4px solid var(--primary);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .metric-val {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    /* Settings Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #191a23;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 16px;
+      right: 16px;
+      background: #191a23;
+      border: 1px solid var(--primary);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      z-index: 200;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transform: translateY(-100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div id="appToast" class="toast">Notifikasi</div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 14px; font-weight: 800; color: #fff;">Pengaturan Koneksi Database</h3>
+        <button onclick="closeSettings()" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;">&times;</button>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+        Pilih koneksi database Supabase Cloud (akses langsung online 4G/5G) atau tentukan server backend kustom.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Mode / Alamat URL Server</label>
+        <input type="text" id="settingApiUrl" class="form-input" placeholder="supabase">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+        <button type="button" onclick="setServerPreset('supabase')" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(16,185,129,0.15); border: 1px solid var(--primary); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; text-align: left;">
+          Supabase Cloud Online (Rekomendasi Utama)
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onclick="setServerPreset('cloud')" style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 10px; font-weight: 700; cursor: pointer;">
+            Vercel Cloud
+          </button>
+          <button type="button" onclick="setServerPreset('local')" style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 10px; font-weight: 700; cursor: pointer;">
+            IP Lokal Wi-Fi
+          </button>
+        </div>
+      </div>
+
+      <button type="button" onclick="saveServerSettings()" class="btn-submit" style="padding: 12px;">
+        Simpan & Uji Koneksi Database
+      </button>
+    </div>
+  </div>
+
+  <!-- PHOTO VIEWER MODAL -->
+  <div id="photoViewerModal" class="modal-backdrop hidden" onclick="if(event.target === this) closePhotoModal()">
+    <div class="modal-box" style="max-width: 440px; padding: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 id="modalPhotoTitle" style="font-size: 13px; font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Bukti Foto Drop Warung</h3>
+        <button type="button" onclick="closePhotoModal()" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+      </div>
+      <div style="border-radius: 16px; overflow: hidden; background: #000; max-height: 70vh; display: flex; align-items: center; justify-content: center;">
+        <img id="modalPhotoImage" src="" alt="Bukti Drop" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain;">
+      </div>
+      <div style="margin-top: 10px; text-align: center;">
+        <button type="button" onclick="closePhotoModal()" style="background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 11px; font-weight: 700; padding: 8px 20px; border-radius: 10px; cursor: pointer;">
+          Tutup Pratinjau
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: LOGIN -->
+  <div id="screen-login" class="screen">
+    <div class="login-container">
+      <div class="login-logo-wrapper">
+        <img src="logo.png" alt="Raja Kerupuk Logo" class="login-logo" onerror="this.src='default-avatar.png'">
+        <h1 class="login-title">Raja Kerupuk</h1>
+        <p class="login-subtitle">Aplikasi Pedagang Keliling & Distribusi</p>
+      </div>
+
+      <div class="login-card">
+        <div id="loginError" class="login-error"></div>
+
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Username Akun</label>
+            <input type="text" id="loginUsername" class="form-input" required placeholder="Contoh: pedagang_depok" autocomplete="username">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label">Kata Sandi</label>
+            <input type="password" id="loginPassword" class="form-input" required placeholder="Masukkan kata sandi" autocomplete="current-password">
+          </div>
+
+          <button type="submit" id="btnSubmitLogin" class="btn-submit">
+            <span>Masuk ke Akun Pedagang</span>
+          </button>
+        </form>
+
+        <button type="button" class="quick-login-btn" onclick="quickLoginDemo()">
+          Login Cepat: Mitra Depok (pedagang_depok)
+        </button>
+
+        <button type="button" onclick="openSettings()" style="width: 100%; margin-top: 10px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); color: var(--text-muted); padding: 9px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer;">
+          &#x2699;&#xFE0F; Pengaturan Server (Cek IP Laptop / WiFi)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: MAIN PEDAGANG APP (DASHBOARD) -->
+  <div id="screen-main" class="screen hidden">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <img src="logo.png" alt="Raja Kerupuk" class="brand-logo" onerror="this.src='default-avatar.png'">
+        <div>
+          <div class="brand-title">Raja Kerupuk</div>
+          <div class="brand-subtitle">Portal Pedagang</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" onclick="openSettings()" title="Pengaturan Server">&#x2699;</button>
+        <button class="btn-icon" onclick="refreshData()" title="Segarkan Data">&#x21bb;</button>
+        <button class="btn-logout" onclick="handleLogout()" title="Keluar">Keluar</button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-content">
+
+      <!-- Profile Banner -->
+      <div class="profile-banner">
+        <div class="profile-info">
+          <img src="default-avatar.png" alt="Avatar" class="profile-avatar">
+          <div>
+            <div class="profile-name" id="userName">Pak Joko (Mitra Depok)</div>
+            <div class="profile-role" id="userFactory">Pabrik Kerupuk Depok</div>
+          </div>
+        </div>
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="connStatus">Database Terhubung</span>
+        </div>
+      </div>
+
+      <!-- TAB 1: FORM DROP KERUPUK -->
+      <section id="tab-drop">
+        <div class="card">
+          <div class="card-title">
+            <span>&#x1F4CD;</span>
+            <span>Catat Drop Kerupuk ke Warung</span>
+          </div>
+          <div class="card-desc">
+            Dokumentasikan pengiriman kerupuk dengan koordinat GPS dan foto bukti fisik langsung terhubung ke database akuntansi pabrik.
+          </div>
+
+          <form id="dropForm" onsubmit="submitDrop(event)">
+            <!-- Nama Warung -->
+            <div class="form-group">
+              <label class="form-label">Nama Warung / Toko Rekanan *</label>
+              <input type="text" id="warungName" class="form-input" required placeholder="Contoh: Warung Bu Siti / Toko Berkah" list="warungSuggestions">
+              <datalist id="warungSuggestions">
+                <option value="Warung Bu Siti">
+                <option value="Toko Kelontong Berkah">
+                <option value="Warung Nasi Barokah">
+                <option value="Toko Makmur Sejahtera">
+              </datalist>
+            </div>
+
+            <!-- Alamat / Patokan Warung -->
+            <div class="form-group">
+              <label class="form-label">Alamat / Patokan Warung</label>
+              <input type="text" id="warungAddress" class="form-input" placeholder="Contoh: Jl. Nusantara dekat pos ronda">
+            </div>
+
+            <!-- Pilihan Produk Kerupuk -->
+            <div class="form-group">
+              <label class="form-label">Pilihan Produk Kerupuk (Database Pabrik) *</label>
+              <select id="productSelect" class="form-select" onchange="updateProductPrice()">
+                <option value="">Memuat produk dari database...</option>
+              </select>
+            </div>
+
+            <!-- Jumlah Drop (Bal) -->
+            <div class="form-group">
+              <label class="form-label">Jumlah Drop (Bal) *</label>
+              <div class="counter-control">
+                <button type="button" class="btn-counter" onclick="changeQty(-1)">-</button>
+                <input type="number" id="dropQty" class="counter-value" value="1" min="1" onchange="calculateTotal()">
+                <button type="button" class="btn-counter" onclick="changeQty(1)">+</button>
+              </div>
+            </div>
+
+            <!-- Metode Pembayaran -->
+            <div class="form-group">
+              <label class="form-label">Metode Pembayaran Warung *</label>
+              <input type="hidden" id="selectedPaymentMethod" name="metode_bayar" value="piutang">
+              <div class="payment-options">
+                <button type="button" id="optPiutang" class="btn-pay-option active piutang" onclick="setPaymentMethod('piutang')">
+                  <span style="font-size: 18px;">&#x1F4C3;</span>
+                  <span>Titip Bon / Piutang</span>
+                </button>
+                <button type="button" id="optTunai" class="btn-pay-option tunai" onclick="setPaymentMethod('tunai')">
+                  <span style="font-size: 18px;">&#x1F4B5;</span>
+                  <span>Bayar Tunai Lunas</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- SENSOR 1: LOKASI GPS -->
+            <div class="sensor-box">
+              <div class="sensor-header">
+                <span class="sensor-title">
+                  <span>&#x1F4CD;</span>
+                  <span>Koordinat GPS Warung</span>
+                </span>
+                <span id="gpsBadge" class="status-badge" style="display: none;">Terkunci</span>
+              </div>
+              <div id="gpsCoordsText" style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                Belum ada koordinat GPS. Tekan tombol di bawah untuk mengunci lokasi.
+              </div>
+              <button type="button" class="btn-sensor" onclick="acquireGpsLocation()">
+                <span>&#x1F4E1;</span>
+                <span id="btnGpsLabel">Kunci Titik Lokasi GPS Sekarang</span>
+              </button>
+            </div>
+
+            <!-- SENSOR 2: KAMERA FOTO BUKTI -->
+            <div class="sensor-box">
+              <div class="sensor-header">
+                <span class="sensor-title">
+                  <span>&#x1F4F7;</span>
+                  <span>Foto Bukti Fisik Drop</span>
+                </span>
+              </div>
+              <img id="photoPreview" class="photo-preview hidden" alt="Pratinjau Foto">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleFilePhoto(event)">
+              <button type="button" class="btn-sensor" onclick="triggerCameraCapture()">
+                <span>&#x1F4F8;</span>
+                <span id="btnPhotoLabel">Ambil Foto Bukti Warung</span>
+              </button>
+            </div>
+
+            <!-- Catatan Drop -->
+            <div class="form-group">
+              <label class="form-label">Catatan Drop (Opsional)</label>
+              <input type="text" id="dropNotes" class="form-input" placeholder="Contoh: Titip 2 bal kerupuk, nota titip di kasir">
+            </div>
+
+            <!-- Total Ringkasan -->
+            <div class="total-box">
+              <div>
+                <div class="total-label">Total Tagihan Transaksi:</div>
+                <div style="font-size: 11px; color: #fff;" id="summaryText">1 Bal @ Rp 0</div>
+              </div>
+              <div class="total-amount" id="totalAmountText">Rp 0</div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btnSubmit" class="btn-submit">
+              <span>&#x2714;</span>
+              <span id="btnSubmitText">Simpan Check-Point ke Database Pabrik</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- TAB 2: RIWAYAT DROP -->
+      <section id="tab-history" class="hidden">
+        <div class="card">
+          <div class="card-title">
+            <span>&#x1F4CB;</span>
+            <span>Riwayat Check-Point dari Database</span>
+          </div>
+          <div class="card-desc">Semua pengiriman kerupuk yang telah tercatat dan diverifikasi di server database.</div>
+          <div id="historyList">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat data checkpoint dari database...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: HUTANG / KARTU PIUTANG -->
+      <section id="tab-debt" class="hidden">
+        <div class="card">
+          <div class="card-title">
+            <span>&#x1F4B0;</span>
+            <span>Status Keuangan & Plafon Kredit</span>
+          </div>
+          <div class="card-desc">Informasi saldo tagihan pedagang ke pabrik berdasarkan buku besar akuntansi ganda.</div>
+
+          <div class="metric-grid">
+            <div class="metric-card alert">
+              <div class="metric-label">Sisa Hutang ke Pabrik</div>
+              <div class="metric-val" id="debtValue">Rp 0</div>
+            </div>
+            <div class="metric-card success">
+              <div class="metric-label">Plafon Kredit Tersedia</div>
+              <div class="metric-val" id="plafonValue">Rp 0</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+            Hutang akan berkurang otomatis saat Anda menyetorkan uang hasil penjualan tunai ke kasir pabrik kerupuk.
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: KATALOG PRODUK -->
+      <section id="tab-catalog" class="hidden">
+        <div class="card">
+          <div class="card-title">
+            <span>&#x1F4E6;</span>
+            <span>Katalog Produk & Stok Gudang Pabrik</span>
+          </div>
+          <div class="card-desc">Stok tersedia dan harga grosir resmi langsung dari database pabrik kerupuk.</div>
+          <div id="catalogList">
+            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat katalog produk dari database...</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('drop', this)">
+        <span class="nav-icon">&#x1F4CD;</span>
+        <span>Drop</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('history', this)">
+        <span class="nav-icon">&#x1F4CB;</span>
+        <span>Riwayat</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('debt', this)">
+        <span class="nav-icon">&#x1F4B0;</span>
+        <span>Hutang</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('catalog', this)">
+        <span class="nav-icon">&#x1F4E6;</span>
+        <span>Katalog</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // Configuration & State
+    const state = {
+      currentUser: null,
+      activeTab: 'drop',
+      paymentMethod: 'piutang',
+      currentLocation: null,
+      currentPhoto: null,
+      products: [],
+      checkpoints: []
+    };
+
+    // Supabase Cloud Configuration
+    const SUPABASE_CONFIG = {
+      url: 'https://lvkqfctwsgtjwrbxwgpu.supabase.co',
+      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2a3FmY3R3c2d0andyYnh3Z3B1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjQ2Mjk3MywiZXhwIjoyMTA4MDM4OTczfQ.a5JVxhPa5Ejcr8JBQyqb5-leuI7VQC0M2pK_vCYk-lg'
+    };
+
+    // Determine API Base URL / Connection Mode
+    function getApiBaseUrl() {
+      const custom = localStorage.getItem('rk_api_url');
+      if (custom && custom.trim()) {
+        const val = custom.trim().replace(/\/+$/, '');
+        if (val.includes('10.181.200.185') || val === 'supabase') {
+          return 'supabase';
+        }
+        return val;
+      }
+
+      const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+
+      // If running inside normal web browser on localhost:4000
+      if (!isNative && window.location.origin && window.location.origin.startsWith('http') && !window.location.origin.includes('android_asset')) {
+        return window.location.origin;
+      }
+
+      // Default directly to Supabase Cloud for Android APK
+      return 'supabase';
+    }
+
+    async function supabaseRequest(endpoint, options = {}) {
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/${endpoint}`;
+      const res = await fetchWithTimeout(url, {
+        ...options,
+        headers: {
+          'apikey': SUPABASE_CONFIG.key,
+          'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+          ...(options.headers || {})
+        }
+      }, 12000);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Supabase [${res.status}]: ${text}`);
+      }
+      const text = await res.text();
+      return text ? JSON.parse(text) : [];
+    }
+
+    async function uploadPhotoToSupabase(base64DataUrl) {
+      if (!base64DataUrl || !base64DataUrl.startsWith('data:image')) {
+        return base64DataUrl;
+      }
+      const commaIndex = base64DataUrl.indexOf(',');
+      const mime = base64DataUrl.substring(5, commaIndex).split(';')[0] || 'image/jpeg';
+      const ext = mime.includes('png') ? 'png' : 'jpg';
+      const byteCharacters = atob(base64DataUrl.substring(commaIndex + 1));
+      const byteArray = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteArray[i] = byteCharacters.charCodeAt(i);
+      }
+      const filename = `drop_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}.${ext}`;
+      const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/drop-photos/${filename}`;
+
+      const res = await fetchWithTimeout(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_CONFIG.key,
+          'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+          'Content-Type': mime
+        },
+        body: byteArray
+      }, 20000);
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Upload foto [${res.status}]: ${errText}`);
+      }
+
+      return `${SUPABASE_CONFIG.url}/storage/v1/object/public/drop-photos/${filename}`;
+    }
+
+    const KNOWN_USERS = {
+      'pedagang_depok': {
+        password: 'password123',
+        user: {
+          id: 3,
+          nama: 'Pak Joko',
+          username: 'pedagang_depok',
+          role: 'pedagang',
+          pabrik_id: 1,
+          nama_pabrik: 'Pabrik Kerupuk Depok',
+          pedagang_id: 7
+        }
+      }
+    };
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      // Auto-dismiss Capacitor Native Splash Screen
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen) {
+          window.Capacitor.Plugins.SplashScreen.hide();
+        }
+      } catch (e) {}
+
+      document.getElementById('settingApiUrl').value = getApiBaseUrl();
+      checkSavedSession();
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('appToast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    // Auth & Session
+    function checkSavedSession() {
+      try {
+        const saved = localStorage.getItem('rk_pedagang_session');
+        if (saved) {
+          state.currentUser = JSON.parse(saved);
+          showMainApp();
+          loadDatabaseData();
+          return;
+        }
+      } catch (e) {}
+
+      showLoginScreen();
+    }
+
+    function showLoginScreen() {
+      document.getElementById('screen-login').classList.remove('hidden');
+      document.getElementById('screen-main').classList.add('hidden');
+    }
+
+    function showMainApp() {
+      document.getElementById('screen-login').classList.add('hidden');
+      document.getElementById('screen-main').classList.remove('hidden');
+
+      if (state.currentUser) {
+        document.getElementById('userName').textContent = `${state.currentUser.nama} (@${state.currentUser.username})`;
+        document.getElementById('userFactory').textContent = state.currentUser.nama_pabrik || 'Pabrik Kerupuk Depok';
+      }
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+      const p = document.getElementById('loginPassword').value;
+      const errBox = document.getElementById('loginError');
+
+      if (!u || !p) {
+        errBox.textContent = 'Harap isi username dan kata sandi.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      if (KNOWN_USERS[u] && KNOWN_USERS[u].password === p) {
+        errBox.style.display = 'none';
+        state.currentUser = KNOWN_USERS[u].user;
+        localStorage.setItem('rk_pedagang_session', JSON.stringify(state.currentUser));
+        showToast(`Selamat datang, ${state.currentUser.nama}!`);
+        showMainApp();
+        loadDatabaseData();
+      } else {
+        errBox.textContent = 'Username atau kata sandi tidak valid. Silakan coba lagi.';
+        errBox.style.display = 'block';
+      }
+    }
+
+    function quickLoginDemo() {
+      document.getElementById('loginUsername').value = 'pedagang_depok';
+      document.getElementById('loginPassword').value = 'password123';
+      handleLoginSubmit(new Event('submit'));
+    }
+
+    function handleLogout() {
+      if (confirm('Apakah Anda yakin ingin keluar dari akun pedagang?')) {
+        localStorage.removeItem('rk_pedagang_session');
+        state.currentUser = null;
+        showToast('Anda telah keluar dari aplikasi.');
+        showLoginScreen();
+      }
+    }
+
+    // Settings Modal
+    function openSettings() {
+      document.getElementById('settingApiUrl').value = getApiBaseUrl();
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function setServerPreset(type) {
+      if (type === 'supabase') {
+        document.getElementById('settingApiUrl').value = 'supabase';
+      } else if (type === 'local') {
+        document.getElementById('settingApiUrl').value = 'http://10.181.200.185:4000';
+      } else {
+        document.getElementById('settingApiUrl').value = 'https://raja-kerupuk.vercel.app';
+      }
+    }
+
+    async function saveServerSettings() {
+      const url = document.getElementById('settingApiUrl').value.trim();
+      if (url) {
+        localStorage.setItem('rk_api_url', url);
+        showToast('Koneksi database diatur: ' + (url === 'supabase' ? 'Supabase Cloud Live' : url));
+        closeSettings();
+        await loadDatabaseData();
+      }
+    }
+
+    // Helper Fetch dengan Timeout agar tidak menggantung tanpa respon
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+          throw new Error('Koneksi timeout (server tidak merespons dalam 7 detik)');
+        }
+        throw error;
+      }
+    }
+
+    // DATABASE SYNCHRONIZATION
+    async function loadDatabaseData() {
+      if (!state.currentUser) return;
+      const base = getApiBaseUrl();
+      const isSupabase = base === 'supabase' || !base.startsWith('http');
+      const pabrikId = state.currentUser.pabrik_id || 1;
+      const pedagangId = state.currentUser.pedagang_id || 7;
+      const connStatusEl = document.getElementById('connStatus');
+
+      if (connStatusEl) {
+        connStatusEl.textContent = isSupabase ? 'Menghubungkan ke Supabase Cloud...' : ('Menghubungkan ke ' + base.replace(/^https?:\/\//, '') + '...');
+        connStatusEl.style.color = '#38bdf8';
+      }
+
+      let anySuccess = false;
+
+      if (isSupabase) {
+        // 1. Ambil Produk langsung dari Supabase REST API
+        try {
+          const prods = await supabaseRequest(`tabel_produk?pabrik_id=eq.${pabrikId}&order=nama_produk.asc`);
+          if (Array.isArray(prods) && prods.length > 0) {
+            state.products = prods;
+            renderProductOptions();
+            renderCatalog();
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil produk dari Supabase:', err);
+          fallbackLocalProducts();
+        }
+
+        // 2. Ambil Riwayat Transaksi Distribusi langsung dari Supabase
+        try {
+          const rows = await supabaseRequest(`tabel_transaksi_distribusi?pabrik_id=eq.${pabrikId}&pedagang_id=eq.${pedagangId}&order=tanggal.desc,id.desc&limit=50`);
+          if (Array.isArray(rows)) {
+            state.checkpoints = rows.map(r => {
+              let meta = {};
+              try {
+                if (r.keterangan && r.keterangan.startsWith('{')) {
+                  meta = JSON.parse(r.keterangan);
+                }
+              } catch {}
+              const prod = state.products.find(p => p.id === r.produk_id);
+              const rawMethod = (meta.metode_bayar || 'piutang').toLowerCase().trim();
+              const isTunai = rawMethod === 'tunai' || rawMethod === 'lunas' || rawMethod === 'cash';
+              return {
+                id: r.id,
+                tanggal: r.tanggal,
+                nama_warung: meta.nama_warung || 'Warung Rekanan',
+                alamat_warung: meta.alamat_warung || '',
+                qty: Number(r.qty) || 0,
+                nama_produk: prod ? prod.nama_produk : (r.nama_produk || 'Kerupuk'),
+                satuan: prod ? prod.satuan : 'Bal',
+                total_jual: Number(r.total_jual) || 0,
+                metode_bayar: isTunai ? 'tunai' : 'piutang',
+                foto_bukti: meta.foto_bukti || null,
+                latitude: meta.latitude || null,
+                longitude: meta.longitude || null,
+                catatan: meta.catatan || ''
+              };
+            });
+            renderHistory();
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil riwayat distribusi dari Supabase:', err);
+        }
+
+        // 3. Ambil Info Saldo Piutang Pedagang langsung dari Supabase
+        try {
+          const pedRows = await supabaseRequest(`tabel_pedagang?id=eq.${pedagangId}&select=id,nama_pedagang,saldo_piutang,limit_piutang`);
+          if (Array.isArray(pedRows) && pedRows.length > 0) {
+            const ped = pedRows[0];
+            document.getElementById('debtValue').textContent = `Rp ${(Number(ped.saldo_piutang) || 0).toLocaleString('id-ID')}`;
+            document.getElementById('plafonValue').textContent = `Rp ${(Number(ped.limit_piutang) || 0).toLocaleString('id-ID')}`;
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil data pedagang dari Supabase:', err);
+        }
+
+        if (connStatusEl) {
+          if (anySuccess) {
+            connStatusEl.textContent = 'Supabase Cloud Terhubung (Live)';
+            connStatusEl.style.color = '#34d399';
+          } else {
+            connStatusEl.textContent = 'Gagal Hubung Supabase';
+            connStatusEl.style.color = '#f87171';
+            showToast('Gagal fetch data dari Supabase Cloud. Periksa koneksi internet.');
+          }
+        }
+      } else {
+        // Mode Server Backend Kustom (Next.js / Vercel / IP Lokal)
+        try {
+          const res = await fetchWithTimeout(`${base}/api/produk?pabrik_id=${pabrikId}`, {}, 8000);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            state.products = data.data;
+            renderProductOptions();
+            renderCatalog();
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil produk dari database:', err);
+          fallbackLocalProducts();
+        }
+
+        try {
+          const res = await fetchWithTimeout(`${base}/api/checkpoint?pabrik_id=${pabrikId}&pedagang_id=${pedagangId}`, {}, 8000);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.checkPoints)) {
+            state.checkpoints = data.checkPoints;
+            renderHistory();
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil checkpoint dari database:', err);
+        }
+
+        try {
+          const res = await fetchWithTimeout(`${base}/api/laporan/kartu-piutang?pabrik_id=${pabrikId}&pedagang_id=${pedagangId}`, {}, 8000);
+          const data = await res.json();
+          if (data.success && data.data) {
+            document.getElementById('debtValue').textContent = `Rp ${(data.data.saldoPiutangSaatIni || 0).toLocaleString('id-ID')}`;
+            document.getElementById('plafonValue').textContent = `Rp ${(data.data.limitPiutang || 0).toLocaleString('id-ID')}`;
+            anySuccess = true;
+          }
+        } catch (err) {
+          console.warn('Gagal ambil kartu piutang dari database:', err);
+        }
+
+        if (connStatusEl) {
+          if (anySuccess) {
+            connStatusEl.textContent = 'Database Terhubung (' + base.replace(/^https?:\/\//, '') + ')';
+            connStatusEl.style.color = '#34d399';
+          } else {
+            connStatusEl.textContent = 'Gagal Fetch (' + base.replace(/^https?:\/\//, '') + ')';
+            connStatusEl.style.color = '#f87171';
+            showToast('Gagal fetch data ke ' + base + '. Buka Pengaturan untuk cek alamat IP.');
+          }
+        }
+      }
+    }
+
+    function renderProductOptions() {
+      const select = document.getElementById('productSelect');
+      if (state.products.length === 0) return;
+
+      select.innerHTML = state.products.map(p => `
+        <option value="${p.id}" data-price="${p.harga_jual}" data-stock="${p.stok}">
+          ${p.nama_produk} (Stok: ${p.stok} ${p.satuan || 'Bal'}) - Rp ${Number(p.harga_jual).toLocaleString('id-ID')}
+        </option>
+      `).join('');
+
+      calculateTotal();
+    }
+
+    function fallbackLocalProducts() {
+      state.products = [
+        { id: 1, nama_produk: 'Kerupuk Putih Mawar Super', harga_jual: 25000, stok: 120, satuan: 'Bal' },
+        { id: 2, nama_produk: 'Kerupuk Kaleng Coklat Renyah', harga_jual: 30000, stok: 85, satuan: 'Bal' },
+        { id: 3, nama_produk: 'Kerupuk Bawang Istimewa', harga_jual: 22000, stok: 60, satuan: 'Bal' }
+      ];
+      renderProductOptions();
+      renderCatalog();
+    }
+
+    function renderCatalog() {
+      const container = document.getElementById('catalogList');
+      if (state.products.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Belum ada data produk di database</div>';
+        return;
+      }
+
+      container.innerHTML = state.products.map(p => `
+        <div style="background: var(--surface-light); border-radius: 14px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #fff;">${p.nama_produk}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Stok Database: <strong style="color: var(--primary);">${p.stok} ${p.satuan || 'Bal'}</strong></div>
+          </div>
+          <div style="font-size: 14px; font-weight: 800; color: var(--primary);">
+            Rp ${Number(p.harga_jual).toLocaleString('id-ID')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      if (state.checkpoints.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 13px;">Belum ada riwayat drop kerupuk di database</div>';
+        return;
+      }
+
+      const base = getApiBaseUrl();
+
+      container.innerHTML = state.checkpoints.map(item => {
+        let photoSrc = '';
+        if (item.foto_bukti) {
+          if (item.foto_bukti.startsWith('http') || item.foto_bukti.startsWith('data:')) {
+            photoSrc = item.foto_bukti;
+          } else {
+            photoSrc = `${base}${item.foto_bukti}`;
+          }
+        }
+
+        const warungName = item.nama_warung || item.warung || 'Warung Rekanan';
+
+        return `
+        <div class="history-card">
+          <div style="position: relative; width: 68px; height: 68px; flex-shrink: 0; border-radius: 14px; overflow: hidden; background: #252736; border: 1px solid var(--border); cursor: ${photoSrc ? 'pointer' : 'default'};"
+               ${photoSrc ? `onclick="openPhotoModal('${photoSrc}', '${warungName.replace(/'/g, "\\'")}')"` : ''}>
+            ${photoSrc ? `
+              <img src="${photoSrc}" class="history-thumb" alt="Bukti" onerror="this.onerror=null; this.src='logo.png';">
+              <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.65); color: #fff; font-size: 8px; padding: 1px 4px; border-radius: 4px; font-weight: 700;">HD</span>
+            ` : `
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 20px;">
+                &#x1F4F7;
+              </div>
+            `}
+          </div>
+          <div class="history-info">
+            <div class="history-warung">${warungName}</div>
+            <div class="history-detail">${item.qty} Bal ${item.nama_produk || item.product || ''} &bull; ${item.tanggal || item.date}</div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="history-total">Rp ${(Number(item.total_jual || item.total) || 0).toLocaleString('id-ID')}</span>
+              <span class="status-badge" style="background: ${item.metode_bayar === 'tunai' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'}; color: ${item.metode_bayar === 'tunai' ? 'var(--primary)' : 'var(--amber)'};">
+                ${item.metode_bayar === 'tunai' ? 'Tunai' : 'Bon / Piutang'}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+              ${item.latitude && item.longitude ? `<a href="https://www.google.com/maps?q=${item.latitude},${item.longitude}" target="_blank" style="font-size: 10px; color: var(--primary); text-decoration: underline;">&#x1F4CD; GPS Peta</a>` : ''}
+              ${photoSrc ? `<button type="button" onclick="openPhotoModal('${photoSrc}', '${warungName.replace(/'/g, "\\'")}')" style="background: none; border: none; font-size: 10px; color: #38bdf8; font-weight: 700; cursor: pointer; padding: 0;">Lihat Foto</button>` : '<span style="font-size: 10px; color: var(--text-muted);">Tanpa Foto</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    // SUBMIT CHECKPOINT TO DATABASE
+    async function submitDrop(e) {
+      e.preventDefault();
+      const warung = document.getElementById('warungName').value.trim();
+      const address = document.getElementById('warungAddress').value.trim();
+      const notes = document.getElementById('dropNotes').value.trim();
+      const select = document.getElementById('productSelect');
+      const opt = select.options[select.selectedIndex];
+      const productId = select.value;
+      const price = Number(opt.getAttribute('data-price')) || 25000;
+      const qty = parseInt(document.getElementById('dropQty').value, 10) || 1;
+
+      if (!warung) {
+        showToast('Nama warung wajib diisi');
+        return;
+      }
+      if (!productId) {
+        showToast('Pilih produk kerupuk dari database');
+        return;
+      }
+
+      const btn = document.getElementById('btnSubmit');
+      const btnText = document.getElementById('btnSubmitText');
+      btn.disabled = true;
+      btnText.textContent = 'Menyimpan ke Supabase Cloud...';
+
+      const chosenMethod = document.getElementById('selectedPaymentMethod')?.value || state.paymentMethod || 'piutang';
+      const isTunai = chosenMethod === 'tunai' || chosenMethod === 'lunas' || chosenMethod === 'cash';
+      const finalPaymentMethod = isTunai ? 'tunai' : 'piutang';
+
+      const base = getApiBaseUrl();
+      const isSupabase = base === 'supabase' || !base.startsWith('http');
+      const pabrikId = state.currentUser?.pabrik_id || 1;
+      const pedagangId = state.currentUser?.pedagang_id || 7;
+      const tanggal = new Date().toISOString().slice(0, 10);
+      const totalJual = qty * price;
+
+      try {
+        if (isSupabase) {
+          // 1. Upload foto bukti ke Supabase Storage bucket 'drop-photos' jika ada
+          let publicPhotoUrl = null;
+          if (state.currentPhoto) {
+            btnText.textContent = 'Mengunggah foto bukti ke Supabase Storage...';
+            try {
+              publicPhotoUrl = await uploadPhotoToSupabase(state.currentPhoto);
+            } catch (pErr) {
+              console.warn('Upload foto bukti gagal, lanjutkan tanpa foto:', pErr);
+            }
+          }
+
+          btnText.textContent = 'Mencatat transaksi & jurnal akuntansi...';
+
+          // 2. Ambil data produk, akun COA, dan data pedagang
+          const [prods, coaAccounts, pedagangRows] = await Promise.all([
+            supabaseRequest(`tabel_produk?id=eq.${productId}`),
+            supabaseRequest(`tabel_akun_perkiraan?pabrik_id=eq.${pabrikId}`),
+            supabaseRequest(`tabel_pedagang?id=eq.${pedagangId}`)
+          ]);
+
+          const prod = prods[0] || { harga_beli: price, nama_produk: 'Kerupuk', stok: 100 };
+          const pedagang = pedagangRows[0] || { nama_pedagang: 'Bang Udin', saldo_piutang: 0 };
+          const unitHPP = Number(prod.harga_beli) || price;
+          const totalHPP = qty * unitHPP;
+          const currentSaldoPiutang = Number(pedagang.saldo_piutang) || 0;
+
+          const akunKas = coaAccounts.find(a => a.kode_akun === '1001') || { id: 1 };
+          const akunPiutang = coaAccounts.find(a => a.kode_akun === '1002') || { id: 2 };
+          const akunPersediaan = coaAccounts.find(a => a.kode_akun === '1003') || { id: 3 };
+          const akunPendapatan = coaAccounts.find(a => a.kode_akun === '4001') || { id: 8 };
+          const akunHPP = coaAccounts.find(a => a.kode_akun === '5001') || { id: 9 };
+
+          const randSuffix = Math.floor(1000 + Math.random() * 9000);
+          const dateClean = tanggal.replace(/-/g, '');
+          const nomorBuktiDist = `DIST-P${pabrikId}-${dateClean}-${randSuffix}`;
+
+          const metaCheckpoint = {
+            tipe: 'CHECKPOINT_DROP',
+            nama_warung: warung,
+            alamat_warung: address,
+            latitude: state.currentLocation ? state.currentLocation.lat : null,
+            longitude: state.currentLocation ? state.currentLocation.lng : null,
+            akurasi: state.currentLocation ? Math.round(state.currentLocation.acc) : null,
+            foto_bukti: publicPhotoUrl,
+            catatan: notes,
+            metode_bayar: finalPaymentMethod
+          };
+
+          // A. Jurnal Distribusi Penjualan
+          const distJurnalRows = await supabaseRequest('tabel_jurnal_transaksi', {
+            method: 'POST',
+            body: JSON.stringify([{
+              pabrik_id: pabrikId,
+              tanggal: tanggal,
+              nomor_bukti: nomorBuktiDist,
+              tipe_transaksi: 'DISTRIBUSI_PENJUALAN',
+              referensi: `${pedagang.nama_pedagang} - ${prod.nama_produk}`,
+              keterangan: `Distribusi ${qty} Bal ${prod.nama_produk} ke ${warung}`,
+              total_nominal: totalJual
+            }])
+          });
+          const distJurnalId = distJurnalRows[0]?.id;
+
+          if (distJurnalId) {
+            await supabaseRequest('tabel_jurnal_detail', {
+              method: 'POST',
+              body: JSON.stringify([
+                { jurnal_id: distJurnalId, akun_id: akunPiutang.id, debit: totalJual, kredit: 0, catatan: `Piutang dagang atas ${warung}` },
+                { jurnal_id: distJurnalId, akun_id: akunPendapatan.id, debit: 0, kredit: totalJual, catatan: `Pendapatan penjualan ${prod.nama_produk}` },
+                { jurnal_id: distJurnalId, akun_id: akunHPP.id, debit: totalHPP, kredit: 0, catatan: `Beban pokok penjualan ${prod.nama_produk}` },
+                { jurnal_id: distJurnalId, akun_id: akunPersediaan.id, debit: 0, kredit: totalHPP, catatan: `Pengurangan persediaan gudang` }
+              ])
+            });
+          }
+
+          // B. Jika Tunai / Lunas: Catat Jurnal Setoran Kas Otomatis
+          if (finalPaymentMethod === 'tunai') {
+            const nomorBuktiSetor = `SETOR-P${pabrikId}-${dateClean}-${randSuffix}`;
+            const setorJurnalRows = await supabaseRequest('tabel_jurnal_transaksi', {
+              method: 'POST',
+              body: JSON.stringify([{
+                pabrik_id: pabrikId,
+                tanggal: tanggal,
+                nomor_bukti: nomorBuktiSetor,
+                tipe_transaksi: 'SETORAN_PIUTANG',
+                referensi: `${pedagang.nama_pedagang} - ${warung}`,
+                keterangan: `Pembayaran Tunai Lunas saat Drop di ${warung}`,
+                total_nominal: totalJual
+              }])
+            });
+            const setorJurnalId = setorJurnalRows[0]?.id;
+            if (setorJurnalId) {
+              await supabaseRequest('tabel_jurnal_detail', {
+                method: 'POST',
+                body: JSON.stringify([
+                  { jurnal_id: setorJurnalId, akun_id: akunKas.id, debit: totalJual, kredit: 0, catatan: `Penerimaan Kas Lunas saat drop di ${warung}` },
+                  { jurnal_id: setorJurnalId, akun_id: akunPiutang.id, debit: 0, kredit: totalJual, catatan: `Pelunasan piutang tunai ${warung}` }
+                ])
+              });
+            }
+          }
+
+          // C. Update Stok Produk di Supabase
+          const newStock = Math.max(0, (Number(prod.stok) || 0) - qty);
+          await supabaseRequest(`tabel_produk?id=eq.${productId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ stok: newStock })
+          });
+
+          // D. Update Saldo Piutang Pedagang (hanya bertambah jika piutang / titip bon)
+          if (finalPaymentMethod === 'piutang') {
+            const newSaldoPiutang = currentSaldoPiutang + totalJual;
+            await supabaseRequest(`tabel_pedagang?id=eq.${pedagangId}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ saldo_piutang: newSaldoPiutang })
+            });
+          }
+
+          // E. Insert Record Transaksi Distribusi
+          await supabaseRequest('tabel_transaksi_distribusi', {
+            method: 'POST',
+            body: JSON.stringify([{
+              pabrik_id: pabrikId,
+              tanggal: tanggal,
+              pedagang_id: pedagangId,
+              produk_id: Number(productId),
+              qty: qty,
+              harga_beli: unitHPP,
+              harga_jual: price,
+              total_jual: totalJual,
+              total_hpp: totalHPP,
+              jurnal_id: distJurnalId || null,
+              keterangan: JSON.stringify(metaCheckpoint)
+            }])
+          });
+
+          showToast(`Berhasil tersimpan ke Supabase! Status: ${finalPaymentMethod === 'tunai' ? 'LUNAS (TUNAI)' : 'TITIP BON (PIUTANG)'}`);
+
+          // Reset Form
+          document.getElementById('warungName').value = '';
+          document.getElementById('warungAddress').value = '';
+          document.getElementById('dropNotes').value = '';
+          document.getElementById('dropQty').value = '1';
+          document.getElementById('photoPreview').classList.add('hidden');
+          document.getElementById('photoPreview').src = '';
+          state.currentPhoto = null;
+          setPaymentMethod('piutang');
+          calculateTotal();
+
+          // Refresh live data from Supabase
+          await loadDatabaseData();
+
+          // Beralih ke Tab Riwayat
+          setTimeout(() => switchTab('history', document.querySelectorAll('.nav-item')[1]), 600);
+
+        } else {
+          // Mode fallback ke server backend kustom
+          const payload = {
+            pedagang_id: pedagangId,
+            pabrik_id: pabrikId,
+            nama_warung: warung,
+            alamat_warung: address,
+            produk_id: Number(productId),
+            qty: qty,
+            harga_jual: price,
+            metode_bayar: finalPaymentMethod,
+            catatan: notes,
+            latitude: state.currentLocation ? state.currentLocation.lat : null,
+            longitude: state.currentLocation ? state.currentLocation.lng : null,
+            akurasi_meter: state.currentLocation ? Math.round(state.currentLocation.acc) : null,
+            foto_bukti: state.currentPhoto,
+            tanggal: tanggal
+          };
+
+          const res = await fetchWithTimeout(`${base}/api/checkpoint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          }, 20000);
+
+          const result = await res.json();
+          if (result.success) {
+            showToast(`Berhasil tersimpan ke database! Bukti: ${result.nomorBukti || 'Terkonfirmasi'}`);
+            document.getElementById('warungName').value = '';
+            document.getElementById('warungAddress').value = '';
+            document.getElementById('dropNotes').value = '';
+            document.getElementById('dropQty').value = '1';
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('photoPreview').src = '';
+            state.currentPhoto = null;
+            setPaymentMethod('piutang');
+            calculateTotal();
+            await loadDatabaseData();
+            setTimeout(() => switchTab('history', document.querySelectorAll('.nav-item')[1]), 600);
+          } else {
+            showToast('Gagal simpan database: ' + (result.error || 'Server menolak transaksi'));
+          }
+        }
+      } catch (err) {
+        console.error('Error simpan checkpoint:', err);
+        showToast('Koneksi ke Supabase gagal: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Simpan Check-Point ke Database Pabrik';
+      }
+    }
+
+    function switchTab(tabId, el) {
+      state.activeTab = tabId;
+      document.querySelectorAll('.app-content > section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      if (el) el.classList.add('active');
+    }
+
+    function changeQty(delta) {
+      const input = document.getElementById('dropQty');
+      let val = parseInt(input.value, 10) || 1;
+      val = Math.max(1, val + delta);
+      input.value = val;
+      calculateTotal();
+    }
+
+    function updateProductPrice() {
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      const select = document.getElementById('productSelect');
+      if (!select.options || select.selectedIndex < 0) return;
+      const option = select.options[select.selectedIndex];
+      if (!option) return;
+
+      const price = Number(option.getAttribute('data-price')) || 0;
+      const qty = parseInt(document.getElementById('dropQty').value, 10) || 1;
+      const total = price * qty;
+
+      document.getElementById('summaryText').textContent = `${qty} Bal @ Rp ${price.toLocaleString('id-ID')}`;
+      document.getElementById('totalAmountText').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+    }
+
+    function setPaymentMethod(method) {
+      const isCash = method === 'tunai' || method === 'lunas' || method === 'cash';
+      const finalVal = isCash ? 'tunai' : 'piutang';
+
+      state.paymentMethod = finalVal;
+
+      const hiddenInput = document.getElementById('selectedPaymentMethod');
+      if (hiddenInput) hiddenInput.value = finalVal;
+
+      const optPiutang = document.getElementById('optPiutang');
+      const optTunai = document.getElementById('optTunai');
+
+      if (optPiutang) optPiutang.classList.toggle('active', !isCash);
+      if (optTunai) optTunai.classList.toggle('active', isCash);
+
+      showToast(isCash ? 'Metode dipilih: Bayar Tunai Lunas' : 'Metode dipilih: Titip Bon / Piutang');
+    }
+
+    // Geolocation
+    async function acquireGpsLocation() {
+      const label = document.getElementById('btnGpsLabel');
+      label.textContent = 'Membaca Satelit GPS...';
+
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+          const pos = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 10000
+          });
+          setGpsResult(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+          return;
+        }
+      } catch (err) {
+        console.warn('Capacitor geo fallback:', err);
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setGpsResult(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+          (err) => {
+            showToast('Gagal GPS: ' + (err.message || 'Izin ditolak'));
+            label.textContent = 'Coba Kunci GPS Lagi';
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        showToast('Perangkat tidak mendukung GPS');
+        label.textContent = 'Kunci Titik Lokasi GPS Sekarang';
+      }
+    }
+
+    function setGpsResult(lat, lng, acc) {
+      state.currentLocation = { lat, lng, acc };
+      document.getElementById('gpsBadge').style.display = 'inline-flex';
+      document.getElementById('gpsCoordsText').innerHTML = 
+        `Lat: <strong>${lat.toFixed(6)}</strong>, Long: <strong>${lng.toFixed(6)}</strong> (Akurasi: +/- ${Math.round(acc || 10)}m)<br>` +
+        `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color: var(--primary); text-decoration: underline; font-weight: 700;">Lihat di Peta Google Maps</a>`;
+      document.getElementById('btnGpsLabel').textContent = 'Perbarui GPS Lokasi';
+      showToast('Lokasi GPS berhasil dikunci!');
+    }
+
+    // Modal Photo Viewer
+    function openPhotoModal(src, title) {
+      if (!src) return;
+      document.getElementById('modalPhotoTitle').textContent = title || 'Bukti Foto Drop Warung';
+      document.getElementById('modalPhotoImage').src = src;
+      document.getElementById('photoViewerModal').classList.remove('hidden');
+    }
+
+    function closePhotoModal() {
+      document.getElementById('photoViewerModal').classList.add('hidden');
+      document.getElementById('modalPhotoImage').src = '';
+    }
+
+    // Client Image Compression to keep payload lightweight & fast
+    function compressImageClient(dataUrl, maxWidth = 1280, quality = 0.8) {
+      return new Promise((resolve) => {
+        if (!dataUrl || !dataUrl.startsWith('data:image')) {
+          resolve(dataUrl);
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth || h > maxWidth) {
+            if (w > h) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            } else {
+              w = Math.round((w * maxWidth) / h);
+              h = maxWidth;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    // Camera
+    async function triggerCameraCapture() {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+          const image = await window.Capacitor.Plugins.Camera.getPhoto({
+            quality: 75,
+            width: 1280,
+            height: 1280,
+            allowEditing: false,
+            resultType: 'dataUrl',
+            source: 'CAMERA'
+          });
+          if (image && image.dataUrl) {
+            const compressed = await compressImageClient(image.dataUrl);
+            setPhotoResult(compressed);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Capacitor camera fallback:', err);
+      }
+
+      document.getElementById('photoInput').click();
+    }
+
+    function handleFilePhoto(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const compressed = await compressImageClient(reader.result);
+        setPhotoResult(compressed);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setPhotoResult(dataUrl) {
+      state.currentPhoto = dataUrl;
+      const preview = document.getElementById('photoPreview');
+      preview.src = dataUrl;
+      preview.classList.remove('hidden');
+      document.getElementById('btnPhotoLabel').textContent = 'Ambil Ulang Foto';
+      showToast('Foto bukti drop siap dikirim ke database!');
+    }
+
+    async function refreshData() {
+      showToast('Menyinkronkan dengan database...');
+      await loadDatabaseData();
+      showToast('Database berhasil disinkronkan.');
+    }
+  </script>
+</body>
+</html>
