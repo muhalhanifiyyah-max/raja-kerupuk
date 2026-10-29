@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Raja Kerupuk Pedagang</title>
   <style>
     :root {
@@ -17,6 +19,40 @@
       --rose: #f43f5e;
       --amber: #f59e0b;
       --sky: #0284c7;
+      --bottom-nav-bg: #14151c;
+      --profile-banner-bg: linear-gradient(135deg, #191a23 0%, #25283c 100%);
+      --login-bg: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.12) 0%, rgba(15, 16, 21, 1) 75%);
+      --sensor-bg: rgba(255, 255, 255, 0.03);
+      --modal-box-bg: #191a23;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --toast-bg: #191a23;
+      --toast-text: #ffffff;
+      --btn-submit-text: #000000;
+      --modal-backdrop-bg: rgba(0, 0, 0, 0.75);
+    }
+
+    body.light-theme {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-light: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --rose: #e11d48;
+      --amber: #d97706;
+      --sky: #0284c7;
+      --bottom-nav-bg: #ffffff;
+      --profile-banner-bg: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%);
+      --login-bg: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.15) 0%, #f1f5f9 85%);
+      --sensor-bg: #f8fafc;
+      --modal-box-bg: #ffffff;
+      --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      --toast-bg: #0f172a;
+      --toast-text: #ffffff;
+      --btn-submit-text: #ffffff;
+      --modal-backdrop-bg: rgba(15, 23, 42, 0.45);
     }
 
     * {
@@ -37,6 +73,7 @@
       padding-bottom: env(safe-area-inset-bottom, 0);
       overflow-x: hidden;
       user-select: none;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     .screen {
@@ -52,7 +89,8 @@
       align-items: center;
       justify-content: center;
       padding: 24px 20px;
-      background: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.12) 0%, rgba(15, 16, 21, 1) 75%);
+      background: var(--login-bg);
+      position: relative;
     }
 
     .login-container {
@@ -70,10 +108,10 @@
       width: 88px;
       height: 88px;
       border-radius: 24px;
-      background: #191a23;
+      background: var(--surface);
       padding: 6px;
       border: 1px solid var(--border);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), 0 0 25px rgba(16, 185, 129, 0.2);
       object-fit: cover;
       display: inline-block;
     }
@@ -81,7 +119,7 @@
     .login-title {
       font-size: 22px;
       font-weight: 900;
-      color: #fff;
+      color: var(--text);
       margin-top: 14px;
       letter-spacing: -0.5px;
     }
@@ -98,7 +136,7 @@
       border: 1px solid var(--border);
       border-radius: 24px;
       padding: 24px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--card-shadow);
     }
 
     .login-error {
@@ -144,6 +182,7 @@
       position: sticky;
       top: 0;
       z-index: 50;
+      transition: background-color 0.25s ease;
     }
 
     .brand {
@@ -159,13 +198,13 @@
       background: var(--surface-light);
       object-fit: cover;
       border: 1px solid var(--border);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     }
 
     .brand-title {
       font-size: 15px;
       font-weight: 800;
-      color: #fff;
+      color: var(--text);
       line-height: 1.2;
     }
 
@@ -184,7 +223,7 @@
     .btn-icon {
       background: var(--surface-light);
       border: 1px solid var(--border);
-      color: #fff;
+      color: var(--text);
       width: 36px;
       height: 36px;
       border-radius: 10px;
@@ -193,6 +232,7 @@
       justify-content: center;
       font-size: 15px;
       cursor: pointer;
+      transition: all 0.2s;
     }
 
     .btn-logout {
@@ -218,7 +258,7 @@
 
     /* Profile Banner */
     .profile-banner {
-      background: linear-gradient(135deg, #191a23 0%, #25283c 100%);
+      background: var(--profile-banner-bg);
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 16px;
@@ -226,7 +266,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--card-shadow);
+      transition: background 0.25s ease;
     }
 
     .profile-info {
@@ -241,13 +282,13 @@
       border-radius: 50%;
       border: 2px solid var(--primary);
       object-fit: cover;
-      background: #000;
+      background: var(--surface-light);
     }
 
     .profile-name {
       font-size: 14px;
       font-weight: 800;
-      color: #fff;
+      color: var(--text);
     }
 
     .profile-role {
@@ -283,13 +324,14 @@
       border-radius: 20px;
       padding: 18px;
       margin-bottom: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.25s ease;
     }
 
     .card-title {
       font-size: 14px;
       font-weight: 800;
-      color: #fff;
+      color: var(--text);
       margin-bottom: 4px;
       display: flex;
       align-items: center;
@@ -312,30 +354,32 @@
       display: block;
       font-size: 12px;
       font-weight: 700;
-      color: #e2e8f0;
+      color: var(--text);
       margin-bottom: 6px;
     }
 
-    .form-input, .form-select {
+    .form-input,
+    .form-select {
       width: 100%;
       padding: 12px 14px;
       background: var(--surface-light);
       border: 1px solid var(--border);
       border-radius: 12px;
-      color: #fff;
+      color: var(--text);
       font-size: 13px;
       font-weight: 600;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background-color 0.25s ease, color 0.25s ease;
     }
 
-    .form-input:focus, .form-select:focus {
+    .form-input:focus,
+    .form-select:focus {
       border-color: var(--primary);
     }
 
     .form-select option {
-      background: #191a23;
-      color: #fff;
+      background: var(--surface);
+      color: var(--text);
     }
 
     /* Counter Control */
@@ -351,7 +395,7 @@
       border-radius: 12px;
       background: var(--surface-light);
       border: 1px solid var(--border);
-      color: #fff;
+      color: var(--text);
       font-size: 20px;
       font-weight: 800;
       display: flex;
@@ -369,7 +413,7 @@
       background: var(--surface-light);
       border: 1px solid var(--border);
       border-radius: 12px;
-      color: #fff;
+      color: var(--text);
     }
 
     /* Payment Option Buttons */
@@ -418,13 +462,28 @@
       box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4);
     }
 
+    body.light-theme .btn-pay-option.active.piutang {
+      background: #fffbeb;
+      border-color: #d97706;
+      color: #b45309;
+      box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.3);
+    }
+
+    body.light-theme .btn-pay-option.active.tunai {
+      background: #ecfdf5;
+      border-color: #059669;
+      color: #047857;
+      box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.3);
+    }
+
     /* Sensor Boxes */
     .sensor-box {
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--sensor-bg);
       border: 1px dashed var(--border);
       border-radius: 14px;
       padding: 14px;
       margin-bottom: 14px;
+      transition: background 0.25s ease;
     }
 
     .sensor-header {
@@ -437,7 +496,7 @@
     .sensor-title {
       font-size: 12px;
       font-weight: 700;
-      color: #fff;
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -449,7 +508,7 @@
       border-radius: 12px;
       border: 1px solid var(--border);
       background: var(--surface-light);
-      color: #fff;
+      color: var(--text);
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -480,6 +539,11 @@
       margin-bottom: 16px;
     }
 
+    body.light-theme .total-box {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+    }
+
     .total-label {
       font-size: 11px;
       color: var(--text-muted);
@@ -498,7 +562,7 @@
       border-radius: 16px;
       border: none;
       background: var(--primary);
-      color: #000;
+      color: var(--btn-submit-text);
       font-size: 14px;
       font-weight: 800;
       cursor: pointer;
@@ -525,12 +589,14 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: #14151c;
+      background: var(--bottom-nav-bg);
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-around;
       padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0));
       z-index: 60;
+      box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.25s ease;
     }
 
     .nav-item {
@@ -567,6 +633,8 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.25s ease;
     }
 
     .history-thumb {
@@ -586,7 +654,7 @@
     .history-warung {
       font-size: 13px;
       font-weight: 800;
-      color: #fff;
+      color: var(--text);
       margin-bottom: 2px;
     }
 
@@ -614,6 +682,8 @@
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 14px;
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.25s ease;
     }
 
     .metric-card.alert {
@@ -635,14 +705,14 @@
     .metric-val {
       font-size: 16px;
       font-weight: 900;
-      color: #fff;
+      color: var(--text);
     }
 
     /* Settings Modal */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
+      background: var(--modal-backdrop-bg);
       backdrop-filter: blur(4px);
       z-index: 150;
       display: flex;
@@ -652,13 +722,38 @@
     }
 
     .modal-box {
-      background: #191a23;
+      background: var(--modal-box-bg);
       border: 1px solid var(--border);
       border-radius: 24px;
       padding: 20px;
       width: 100%;
       max-width: 420px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      color: var(--text);
+      transition: background-color 0.25s ease;
+    }
+
+    /* Theme Option Button inside Modal */
+    .btn-theme-opt {
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-light);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-theme-opt.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     /* Toast */
@@ -667,15 +762,15 @@
       top: 20px;
       left: 16px;
       right: 16px;
-      background: #191a23;
+      background: var(--toast-bg);
       border: 1px solid var(--primary);
-      color: #fff;
+      color: var(--toast-text);
       padding: 12px 16px;
       border-radius: 14px;
       font-size: 12px;
       font-weight: 700;
       z-index: 200;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
       transform: translateY(-100px);
       opacity: 0;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -691,6 +786,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Toast Notification -->
@@ -700,11 +796,27 @@
   <div id="settingsModal" class="modal-backdrop hidden">
     <div class="modal-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h3 style="font-size: 14px; font-weight: 800; color: #fff;">Pengaturan Koneksi Database</h3>
-        <button onclick="closeSettings()" style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;">&times;</button>
+        <h3 style="font-size: 14px; font-weight: 800; color: var(--text);">Pengaturan Koneksi & Tampilan</h3>
+        <button onclick="closeSettings()"
+          style="background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer;">&times;</button>
       </div>
 
-      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+      <!-- Theme Selector -->
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label">Tema Tampilan Aplikasi</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button type="button" id="themeOptDark" onclick="applyTheme('dark'); showToast('Mode Gelap diaktifkan');" class="btn-theme-opt">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span>Mode Gelap</span>
+          </button>
+          <button type="button" id="themeOptLight" onclick="applyTheme('light'); showToast('Mode Terang diaktifkan');" class="btn-theme-opt">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <span>Mode Terang</span>
+          </button>
+        </div>
+      </div>
+
+      <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
         Pilih koneksi database Supabase Cloud (akses langsung online 4G/5G) atau tentukan server backend kustom.
       </p>
 
@@ -714,14 +826,17 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
-        <button type="button" onclick="setServerPreset('supabase')" style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(16,185,129,0.15); border: 1px solid var(--primary); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; text-align: left;">
+        <button type="button" onclick="setServerPreset('supabase')"
+          style="width: 100%; padding: 10px; border-radius: 10px; background: rgba(16,185,129,0.15); border: 1px solid var(--primary); color: var(--primary); font-size: 11px; font-weight: 800; cursor: pointer; text-align: left;">
           Supabase Cloud Online (Rekomendasi Utama)
         </button>
         <div style="display: flex; gap: 8px;">
-          <button type="button" onclick="setServerPreset('cloud')" style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 10px; font-weight: 700; cursor: pointer;">
+          <button type="button" onclick="setServerPreset('cloud')"
+            style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: var(--text); font-size: 10px; font-weight: 700; cursor: pointer;">
             Vercel Cloud
           </button>
-          <button type="button" onclick="setServerPreset('local')" style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 10px; font-weight: 700; cursor: pointer;">
+          <button type="button" onclick="setServerPreset('local')"
+            style="flex: 1; padding: 8px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: var(--text); font-size: 10px; font-weight: 700; cursor: pointer;">
             IP Lokal Wi-Fi
           </button>
         </div>
@@ -737,14 +852,20 @@
   <div id="photoViewerModal" class="modal-backdrop hidden" onclick="if(event.target === this) closePhotoModal()">
     <div class="modal-box" style="max-width: 440px; padding: 14px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 id="modalPhotoTitle" style="font-size: 13px; font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Bukti Foto Drop Warung</h3>
-        <button type="button" onclick="closePhotoModal()" style="background: rgba(255,255,255,0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+        <h3 id="modalPhotoTitle"
+          style="font-size: 13px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          Bukti Foto Drop Warung</h3>
+        <button type="button" onclick="closePhotoModal()"
+          style="background: var(--surface-light); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
       </div>
-      <div style="border-radius: 16px; overflow: hidden; background: #000; max-height: 70vh; display: flex; align-items: center; justify-content: center;">
-        <img id="modalPhotoImage" src="" alt="Bukti Drop" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain;">
+      <div
+        style="border-radius: 16px; overflow: hidden; background: #000; max-height: 70vh; display: flex; align-items: center; justify-content: center;">
+        <img id="modalPhotoImage" src="" alt="Bukti Drop"
+          style="width: 100%; height: auto; max-height: 70vh; object-fit: contain;">
       </div>
       <div style="margin-top: 10px; text-align: center;">
-        <button type="button" onclick="closePhotoModal()" style="background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 11px; font-weight: 700; padding: 8px 20px; border-radius: 10px; cursor: pointer;">
+        <button type="button" onclick="closePhotoModal()"
+          style="background: var(--surface-light); border: 1px solid var(--border); color: var(--text); font-size: 11px; font-weight: 700; padding: 8px 20px; border-radius: 10px; cursor: pointer;">
           Tutup Pratinjau
         </button>
       </div>
@@ -753,6 +874,26 @@
 
   <!-- SCREEN 1: LOGIN -->
   <div id="screen-login" class="screen">
+    <!-- Floating Theme Switcher on Login -->
+    <div style="position: absolute; top: 16px; right: 16px;">
+      <button type="button" class="btn-icon" onclick="toggleTheme()" title="Ganti Tema (Terang / Gelap)">
+        <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="theme-icon-moon" style="display: none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+
     <div class="login-container">
       <div class="login-logo-wrapper">
         <img src="logo.png" alt="Raja Kerupuk Logo" class="login-logo" onerror="this.src='default-avatar.png'">
@@ -766,12 +907,14 @@
         <form id="loginForm" onsubmit="handleLoginSubmit(event)">
           <div class="form-group">
             <label class="form-label">Username Akun</label>
-            <input type="text" id="loginUsername" class="form-input" required placeholder="Contoh: pedagang_depok" autocomplete="username">
+            <input type="text" id="loginUsername" class="form-input" required placeholder="Contoh: pedagang_depok"
+              autocomplete="username">
           </div>
 
           <div class="form-group" style="margin-bottom: 20px;">
             <label class="form-label">Kata Sandi</label>
-            <input type="password" id="loginPassword" class="form-input" required placeholder="Masukkan kata sandi" autocomplete="current-password">
+            <input type="password" id="loginPassword" class="form-input" required placeholder="Masukkan kata sandi"
+              autocomplete="current-password">
           </div>
 
           <button type="submit" id="btnSubmitLogin" class="btn-submit">
@@ -783,8 +926,9 @@
           Login Cepat: Mitra Depok (pedagang_depok)
         </button>
 
-        <button type="button" onclick="openSettings()" style="width: 100%; margin-top: 10px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); color: var(--text-muted); padding: 9px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer;">
-          &#x2699;&#xFE0F; Pengaturan Server (Cek IP Laptop / WiFi)
+        <button type="button" onclick="openSettings()"
+          style="width: 100%; margin-top: 10px; background: var(--surface-light); border: 1px dashed var(--border); color: var(--text-muted); padding: 9px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer;">
+          Pengaturan Koneksi Server & Tema
         </button>
       </div>
     </div>
@@ -802,8 +946,42 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn-icon" onclick="openSettings()" title="Pengaturan Server">&#x2699;</button>
-        <button class="btn-icon" onclick="refreshData()" title="Segarkan Data">&#x21bb;</button>
+        <!-- Theme Toggle Button -->
+        <button class="btn-icon" id="btnThemeToggle" onclick="toggleTheme()" title="Ganti Tema (Terang / Gelap)">
+          <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="theme-icon-moon" style="display: none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Settings Button -->
+        <button class="btn-icon" onclick="openSettings()" title="Pengaturan Server & Tema">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+
+        <!-- Refresh Button -->
+        <button class="btn-icon" onclick="refreshData()" title="Segarkan Data">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+
+        <!-- Logout Button -->
         <button class="btn-logout" onclick="handleLogout()" title="Keluar">Keluar</button>
       </div>
     </header>
@@ -834,14 +1012,16 @@
             <span>Catat Drop Kerupuk ke Warung</span>
           </div>
           <div class="card-desc">
-            Dokumentasikan pengiriman kerupuk dengan koordinat GPS dan foto bukti fisik langsung terhubung ke database akuntansi pabrik.
+            Dokumentasikan pengiriman kerupuk dengan koordinat GPS dan foto bukti fisik langsung terhubung ke database
+            akuntansi pabrik.
           </div>
 
           <form id="dropForm" onsubmit="submitDrop(event)">
             <!-- Nama Warung -->
             <div class="form-group">
               <label class="form-label">Nama Warung / Toko Rekanan *</label>
-              <input type="text" id="warungName" class="form-input" required placeholder="Contoh: Warung Bu Siti / Toko Berkah" list="warungSuggestions">
+              <input type="text" id="warungName" class="form-input" required
+                placeholder="Contoh: Warung Bu Siti / Toko Berkah" list="warungSuggestions">
               <datalist id="warungSuggestions">
                 <option value="Warung Bu Siti">
                 <option value="Toko Kelontong Berkah">
@@ -853,7 +1033,8 @@
             <!-- Alamat / Patokan Warung -->
             <div class="form-group">
               <label class="form-label">Alamat / Patokan Warung</label>
-              <input type="text" id="warungAddress" class="form-input" placeholder="Contoh: Jl. Nusantara dekat pos ronda">
+              <input type="text" id="warungAddress" class="form-input"
+                placeholder="Contoh: Jl. Nusantara dekat pos ronda">
             </div>
 
             <!-- Pilihan Produk Kerupuk -->
@@ -879,7 +1060,8 @@
               <label class="form-label">Metode Pembayaran Warung *</label>
               <input type="hidden" id="selectedPaymentMethod" name="metode_bayar" value="piutang">
               <div class="payment-options">
-                <button type="button" id="optPiutang" class="btn-pay-option active piutang" onclick="setPaymentMethod('piutang')">
+                <button type="button" id="optPiutang" class="btn-pay-option active piutang"
+                  onclick="setPaymentMethod('piutang')">
                   <span style="font-size: 18px;">&#x1F4C3;</span>
                   <span>Titip Bon / Piutang</span>
                 </button>
@@ -917,7 +1099,8 @@
                 </span>
               </div>
               <img id="photoPreview" class="photo-preview hidden" alt="Pratinjau Foto">
-              <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleFilePhoto(event)">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;"
+                onchange="handleFilePhoto(event)">
               <button type="button" class="btn-sensor" onclick="triggerCameraCapture()">
                 <span>&#x1F4F8;</span>
                 <span id="btnPhotoLabel">Ambil Foto Bukti Warung</span>
@@ -927,14 +1110,15 @@
             <!-- Catatan Drop -->
             <div class="form-group">
               <label class="form-label">Catatan Drop (Opsional)</label>
-              <input type="text" id="dropNotes" class="form-input" placeholder="Contoh: Titip 2 bal kerupuk, nota titip di kasir">
+              <input type="text" id="dropNotes" class="form-input"
+                placeholder="Contoh: Titip 2 bal kerupuk, nota titip di kasir">
             </div>
 
             <!-- Total Ringkasan -->
             <div class="total-box">
               <div>
                 <div class="total-label">Total Tagihan Transaksi:</div>
-                <div style="font-size: 11px; color: #fff;" id="summaryText">1 Bal @ Rp 0</div>
+                <div style="font-size: 11px; color: var(--text);" id="summaryText">1 Bal @ Rp 0</div>
               </div>
               <div class="total-amount" id="totalAmountText">Rp 0</div>
             </div>
@@ -957,7 +1141,8 @@
           </div>
           <div class="card-desc">Semua pengiriman kerupuk yang telah tercatat dan diverifikasi di server database.</div>
           <div id="historyList">
-            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat data checkpoint dari database...</div>
+            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat data
+              checkpoint dari database...</div>
           </div>
         </div>
       </section>
@@ -969,7 +1154,8 @@
             <span>&#x1F4B0;</span>
             <span>Status Keuangan & Plafon Kredit</span>
           </div>
-          <div class="card-desc">Informasi saldo tagihan pedagang ke pabrik berdasarkan buku besar akuntansi ganda.</div>
+          <div class="card-desc">Informasi saldo tagihan pedagang ke pabrik berdasarkan buku besar akuntansi ganda.
+          </div>
 
           <div class="metric-grid">
             <div class="metric-card alert">
@@ -982,7 +1168,8 @@
             </div>
           </div>
 
-          <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+          <div
+            style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; font-size: 11px; color: var(--text-muted); line-height: 1.5;">
             Hutang akan berkurang otomatis saat Anda menyetorkan uang hasil penjualan tunai ke kasir pabrik kerupuk.
           </div>
         </div>
@@ -997,7 +1184,8 @@
           </div>
           <div class="card-desc">Stok tersedia dan harga grosir resmi langsung dari database pabrik kerupuk.</div>
           <div id="catalogList">
-            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat katalog produk dari database...</div>
+            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12px;">Memuat katalog
+              produk dari database...</div>
           </div>
         </div>
       </section>
@@ -1134,14 +1322,58 @@
       }
     };
 
+    // Theme Management (Light Mode / Dark Mode)
+    function applyTheme(theme) {
+      const isLight = theme === 'light';
+      if (isLight) {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+      localStorage.setItem('rk_theme', theme);
+
+      // Update sun/moon icon visibility across all toggle buttons
+      const sunIcons = document.querySelectorAll('.theme-icon-sun');
+      const moonIcons = document.querySelectorAll('.theme-icon-moon');
+      sunIcons.forEach(el => el.style.display = isLight ? 'none' : 'block');
+      moonIcons.forEach(el => el.style.display = isLight ? 'block' : 'none');
+
+      // Update active pills in settings modal
+      const optDark = document.getElementById('themeOptDark');
+      const optLight = document.getElementById('themeOptLight');
+      if (optDark && optLight) {
+        optDark.classList.toggle('active', !isLight);
+        optLight.classList.toggle('active', isLight);
+      }
+    }
+
+    function toggleTheme() {
+      const current = localStorage.getItem('rk_theme') || 'dark';
+      const targetTheme = current === 'light' ? 'dark' : 'light';
+      applyTheme(targetTheme);
+      showToast(targetTheme === 'light' ? 'Mode Terang diaktifkan' : 'Mode Gelap diaktifkan');
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('rk_theme');
+      if (savedTheme) {
+        applyTheme(savedTheme);
+      } else {
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        applyTheme(prefersLight ? 'light' : 'dark');
+      }
+    }
+
     // Initialize App
     window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+
       // Auto-dismiss Capacitor Native Splash Screen
       try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen) {
           window.Capacitor.Plugins.SplashScreen.hide();
         }
-      } catch (e) {}
+      } catch (e) { }
 
       document.getElementById('settingApiUrl').value = getApiBaseUrl();
       checkSavedSession();
@@ -1164,7 +1396,7 @@
           loadDatabaseData();
           return;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       showLoginScreen();
     }
@@ -1227,6 +1459,8 @@
     // Settings Modal
     function openSettings() {
       document.getElementById('settingApiUrl').value = getApiBaseUrl();
+      const currentTheme = localStorage.getItem('rk_theme') || (document.body.classList.contains('light-theme') ? 'light' : 'dark');
+      applyTheme(currentTheme);
       document.getElementById('settingsModal').classList.remove('hidden');
     }
 
@@ -1312,7 +1546,7 @@
                 if (r.keterangan && r.keterangan.startsWith('{')) {
                   meta = JSON.parse(r.keterangan);
                 }
-              } catch {}
+              } catch { }
               const prod = state.products.find(p => p.id === r.produk_id);
               const rawMethod = (meta.metode_bayar || 'piutang').toLowerCase().trim();
               const isTunai = rawMethod === 'tunai' || rawMethod === 'lunas' || rawMethod === 'cash';
@@ -1354,7 +1588,7 @@
 
         if (connStatusEl) {
           if (anySuccess) {
-            connStatusEl.textContent = 'Supabase Cloud Terhubung (Live)';
+            connStatusEl.textContent = 'Connected';
             connStatusEl.style.color = '#34d399';
           } else {
             connStatusEl.textContent = 'Gagal Hubung Supabase';
@@ -1448,7 +1682,7 @@
       container.innerHTML = state.products.map(p => `
         <div style="background: var(--surface-light); border-radius: 14px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
           <div>
-            <div style="font-size: 13px; font-weight: 800; color: #fff;">${p.nama_produk}</div>
+            <div style="font-size: 13px; font-weight: 800; color: var(--text);">${p.nama_produk}</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Stok Database: <strong style="color: var(--primary);">${p.stok} ${p.satuan || 'Bal'}</strong></div>
           </div>
           <div style="font-size: 14px; font-weight: 800; color: var(--primary);">
@@ -1848,7 +2082,7 @@
     function setGpsResult(lat, lng, acc) {
       state.currentLocation = { lat, lng, acc };
       document.getElementById('gpsBadge').style.display = 'inline-flex';
-      document.getElementById('gpsCoordsText').innerHTML = 
+      document.getElementById('gpsCoordsText').innerHTML =
         `Lat: <strong>${lat.toFixed(6)}</strong>, Long: <strong>${lng.toFixed(6)}</strong> (Akurasi: +/- ${Math.round(acc || 10)}m)<br>` +
         `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color: var(--primary); text-decoration: underline; font-weight: 700;">Lihat di Peta Google Maps</a>`;
       document.getElementById('btnGpsLabel').textContent = 'Perbarui GPS Lokasi';
@@ -1952,4 +2186,5 @@
     }
   </script>
 </body>
+
 </html>
