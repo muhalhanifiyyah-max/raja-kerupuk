@@ -1,6 +1,34 @@
 import { NextResponse } from 'next/server';
-import { query, queryOne, queryAll } from '@/supabase';
+import { query, queryOne, queryAll, postgrestRequest } from '@/supabase';
 import { getNeraca, getLabaRugi, getGlobalConsolidation, getJurnalUmum } from '@/accounting';
+
+async function getMonthlySales(pabrikId) {
+  try {
+    let endpoint = `tabel_jurnal_detail?select=debit,kredit,tabel_jurnal_transaksi(id,pabrik_id,tanggal),tabel_akun_perkiraan!inner(kode_akun)&tabel_akun_perkiraan.kode_akun=eq.4001`;
+    const details = await postgrestRequest(endpoint);
+    const monthsMap = new Map();
+    for (const d of (details || [])) {
+      const j = d.tabel_jurnal_transaksi;
+      if (!j || !j.tanggal) continue;
+      if (pabrikId && pabrikId !== 'all' && Number(j.pabrik_id) !== Number(pabrikId)) continue;
+
+      const t = new Date(j.tanggal);
+      const yearMonth = j.tanggal.slice(0, 7);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const bulan = `${monthNames[t.getUTCMonth()]}-${t.getUTCFullYear()}`;
+      const sales = (Number(d.kredit) || 0) - (Number(d.debit) || 0);
+
+      if (!monthsMap.has(yearMonth)) {
+        monthsMap.set(yearMonth, { bulan, bulan_date: `${yearMonth}-01`, total_penjualan: 0 });
+      }
+      monthsMap.get(yearMonth).total_penjualan += sales;
+    }
+    return Array.from(monthsMap.values()).sort((a, b) => a.bulan_date.localeCompare(b.bulan_date));
+  } catch (err) {
+    console.warn('Fallback monthlySales:', err.message);
+    return [];
+  }
+}
 
 export async function GET(request) {
   try {
@@ -43,19 +71,7 @@ export async function GET(request) {
           ORDER BY prod.nama_produk ASC
         `),
         getJurnalUmum('all', { limit: 25 }),
-        queryAll(`
-          SELECT 
-            TO_CHAR(j.tanggal, 'Mon-YYYY') as bulan,
-            DATE_TRUNC('month', j.tanggal) as bulan_date,
-            COALESCE(SUM(d.kredit - d.debit), 0)::numeric as total_penjualan
-          FROM tabel_jurnal_transaksi j
-          JOIN tabel_jurnal_detail d ON j.id = d.jurnal_id
-          JOIN tabel_akun_perkiraan a ON d.akun_id = a.id
-          WHERE a.kode_akun = '4001'
-          GROUP BY bulan, bulan_date
-          ORDER BY bulan_date ASC
-          LIMIT 12
-        `)
+        getMonthlySales('all')
       ]);
 
       const totals = globalData.totals || {};
@@ -133,19 +149,7 @@ export async function GET(request) {
         ORDER BY prod.nama_produk ASC
       `, [pabrikId]),
       getJurnalUmum(pabrikId, { limit: 25 }),
-      queryAll(`
-        SELECT 
-          TO_CHAR(j.tanggal, 'Mon-YYYY') as bulan,
-          DATE_TRUNC('month', j.tanggal) as bulan_date,
-          COALESCE(SUM(d.kredit - d.debit), 0)::numeric as total_penjualan
-        FROM tabel_jurnal_transaksi j
-        JOIN tabel_jurnal_detail d ON j.id = d.jurnal_id
-        JOIN tabel_akun_perkiraan a ON d.akun_id = a.id
-        WHERE j.pabrik_id = ? AND a.kode_akun = '4001'
-        GROUP BY bulan, bulan_date
-        ORDER BY bulan_date ASC
-        LIMIT 12
-      `, [pabrikId])
+      getMonthlySales(pabrikId)
     ]);
 
     if (!pabrik) {

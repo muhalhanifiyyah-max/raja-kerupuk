@@ -253,59 +253,102 @@ async function fallbackPostgrest(sql, params = []) {
     }
   }
 
-  // 2. INSERT query
+  // 2. INSERT query (Mendukung Single-Row & Multi-Row INSERTs)
   if (upper.startsWith('INSERT INTO')) {
     const tableMatch = trimmed.match(/INSERT\s+INTO\s+([a-zA-Z0-9_]+)/i);
     const table = tableMatch ? tableMatch[1] : null;
 
     if (table) {
       const colsMatch = trimmed.match(/\(([^)]+)\)\s+VALUES/i);
-      const valsMatch = trimmed.match(/VALUES\s*\((.+)\)(?:\s+RETURNING|\s*;|$)/is);
+      const valuesIdx = trimmed.search(/VALUES\s*\(/i);
 
-      if (colsMatch && valsMatch) {
-        const cols = colsMatch[1].split(',').map(c => c.trim().replace(/["']/g, ''));
-        const formattedValuesStr = valsMatch[1];
+      if (colsMatch && valuesIdx !== -1) {
+        const cols = colsMatch[1].split(',').map(c => c.trim().replace(/["'`]/g, ''));
+        const valuesSub = trimmed.slice(valuesIdx);
+        const startParen = valuesSub.indexOf('(');
+        const rest = valuesSub.slice(startParen);
 
-        // Parse comma-separated values respecting strings
-        const vals = [];
-        let cur = '';
+        // Ekstraksi seluruh tuple (...), (...) dengan menghormati string quotes
+        const tuples = [];
         let inQuotes = false;
-        for (let i = 0; i < formattedValuesStr.length; i++) {
-          const ch = formattedValuesStr[i];
-          if (ch === "'" && formattedValuesStr[i - 1] !== "\\") {
+        let depth = 0;
+        let currentTuple = '';
+
+        for (let i = 0; i < rest.length; i++) {
+          const ch = rest[i];
+          if (ch === "'" && rest[i - 1] !== "\\") {
             inQuotes = !inQuotes;
-          } else if (ch === ',' && !inQuotes) {
-            vals.push(cur.trim());
-            cur = '';
-            continue;
-          }
-          cur += ch;
-        }
-        if (cur.trim()) vals.push(cur.trim());
-
-        const bodyObj = {};
-        cols.forEach((col, idx) => {
-          let val = vals[idx];
-          if (val === undefined || val === 'NULL' || val === 'null') {
-            bodyObj[col] = null;
-          } else if (val.startsWith("'") && val.endsWith("'")) {
-            bodyObj[col] = val.slice(1, -1).replace(/''/g, "'");
-          } else if (!isNaN(Number(val))) {
-            bodyObj[col] = Number(val);
-          } else if (val.toUpperCase() === 'TRUE') {
-            bodyObj[col] = true;
-          } else if (val.toUpperCase() === 'FALSE') {
-            bodyObj[col] = false;
+            currentTuple += ch;
+          } else if (ch === '(' && !inQuotes) {
+            depth++;
+            if (depth === 1) {
+              currentTuple = '';
+            } else {
+              currentTuple += ch;
+            }
+          } else if (ch === ')' && !inQuotes) {
+            depth--;
+            if (depth === 0) {
+              tuples.push(currentTuple);
+              currentTuple = '';
+            } else {
+              currentTuple += ch;
+            }
           } else {
-            bodyObj[col] = val;
+            if (depth > 0) {
+              currentTuple += ch;
+            } else if (ch === ';') {
+              break;
+            }
           }
-        });
+        }
 
-        return await postgrestRequest(table, {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(bodyObj)
-        });
+        const rowsToInsert = [];
+        for (const tupleStr of tuples) {
+          const vals = [];
+          let cur = '';
+          let inQ = false;
+          for (let i = 0; i < tupleStr.length; i++) {
+            const ch = tupleStr[i];
+            if (ch === "'" && tupleStr[i - 1] !== "\\") {
+              inQ = !inQ;
+            } else if (ch === ',' && !inQ) {
+              vals.push(cur.trim());
+              cur = '';
+              continue;
+            }
+            cur += ch;
+          }
+          if (cur.trim()) vals.push(cur.trim());
+
+          const rowObj = {};
+          cols.forEach((col, idx) => {
+            let val = vals[idx];
+            if (val === undefined || val === 'NULL' || val === 'null') {
+              rowObj[col] = null;
+            } else if (val.startsWith("'") && val.endsWith("'")) {
+              rowObj[col] = val.slice(1, -1).replace(/''/g, "'");
+            } else if (!isNaN(Number(val))) {
+              rowObj[col] = Number(val);
+            } else if (val.toUpperCase() === 'TRUE') {
+              rowObj[col] = true;
+            } else if (val.toUpperCase() === 'FALSE') {
+              rowObj[col] = false;
+            } else {
+              rowObj[col] = val;
+            }
+          });
+          rowsToInsert.push(rowObj);
+        }
+
+        if (rowsToInsert.length > 0) {
+          const payload = rowsToInsert.length === 1 ? rowsToInsert[0] : rowsToInsert;
+          return await postgrestRequest(table, {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(payload)
+          });
+        }
       }
     }
   }

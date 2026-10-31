@@ -893,7 +893,26 @@ export default function App() {
     csv += `Beban Operasional,${metrics.bebanOperasional},${metrics.penjualan > 0 ? ((metrics.bebanOperasional / metrics.penjualan) * 100).toFixed(1) : 0}%\r\n`;
     csv += `Laba Bersih (Net Profit),${metrics.labaBersih},${netProfitMargin}%\r\n\r\n`;
 
-    csv += "=== III. LAPORAN PERSEDIAAN BARANG DAGANG (INVENTORY) ===\r\n";
+    csv += "=== III. LAPORAN ARUS KAS & MUTASI PERBANKAN ===\r\n";
+    csv += "No,Tanggal,Nomor Bukti,Tipe Transaksi,Keterangan,Penerimaan Kas (IDR),Pengeluaran Kas (IDR)\r\n";
+    let noKas = 1;
+    let totalKasIn = 0;
+    let totalKasOut = 0;
+    (dashboardData?.recentJournals || []).forEach(j => {
+      const kd = j.details?.find(d => d.kode_akun === '1001');
+      if (kd) {
+        const debit = Number(kd.debit) || 0;
+        const kredit = Number(kd.kredit) || 0;
+        totalKasIn += debit;
+        totalKasOut += kredit;
+        csv += `${noKas++},"${j.tanggal}","${j.nomor_bukti}","${j.tipe_transaksi}","${(j.keterangan || '').replace(/"/g, '""')}",${debit},${kredit}\r\n`;
+      }
+    });
+    csv += `Total Kas Masuk,,,,,${totalKasIn},\r\n`;
+    csv += `Total Kas Keluar,,,,,,${totalKasOut}\r\n`;
+    csv += `Saldo Kas Akhir Berjalan,,,,,${metrics.kas},\r\n\r\n`;
+
+    csv += "=== IV. LAPORAN PERSEDIAAN BARANG DAGANG (INVENTORY) ===\r\n";
     csv += "No,Nama Produk,Satuan,Stok Gudang,Harga Beli Pokok,Nilai Persediaan Aset,Harga Jual Satuan,Potensi Nilai Jual,Estimasi Potensi Margin\r\n";
     produkList.forEach((p, idx) => {
       const stok = Number(p.stok) || 0;
@@ -903,7 +922,7 @@ export default function App() {
     });
     csv += `Total,Semua Produk,,${totalPersediaanQty},,${totalPersediaanValuasi},,${totalPersediaanPotensiOmset},${totalPersediaanPotensiMargin}\r\n\r\n`;
 
-    csv += "=== IV. LAPORAN KONTROL PIUTANG & MITRA PEDAGANG ===\r\n";
+    csv += "=== V. LAPORAN KONTROL PIUTANG & MITRA PEDAGANG ===\r\n";
     csv += "No,Nama Mitra Pedagang,Telepon,Alamat,Plafon Limit Kredit,Saldo Piutang Berjalan,Sisa Limit,Utilisasi (%),Status Piutang\r\n";
     pedagangList.forEach((ped, idx) => {
       const limit = Number(ped.limit_piutang) || 0;
@@ -914,7 +933,7 @@ export default function App() {
     });
     csv += `Total,Semua Pedagang,,,${totalLimitPiutang},${totalPiutangNominal},${Math.max(0, totalLimitPiutang - totalPiutangNominal)},${avgUtilisasiPiutang}%\r\n\r\n`;
 
-    csv += "=== V. ANALISIS RASIO KEUANGAN ===\r\n";
+    csv += "=== VI. ANALISIS RASIO KEUANGAN ===\r\n";
     csv += "Rasio,Nilai,Status Evaluasi\r\n";
     csv += `Current Ratio,${metrics.totalAset > 0 ? 'Solven Penuh (Bebas Utang)' : '0'},Sangat Sehat\r\n`;
     csv += `Cash Ratio,${cashRatio}%,Likuiditas Kas Siap Pakai\r\n`;
@@ -1200,20 +1219,23 @@ export default function App() {
                   <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
                 </button>
 
-                {/* Menu Khusus Super Admin (Owner / Pabrik Lengkap) */}
+                {/* Menu Peralatan (Super Admin) */}
                 {currentUser?.role === 'super_admin' && (
-                  <>
-                    <button
-                      onClick={() => setActiveTab('purchases')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
-                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                        }`}
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>Peralatan & Aset</span>
-                    </button>
+                  <button
+                    onClick={() => setActiveTab('purchases')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Peralatan & Aset</span>
+                  </button>
+                )}
 
+                {/* Menu Laporan Keuangan & Cetak Laporan (Super Admin & Admin Pabrik) */}
+                {['super_admin', 'admin_pabrik'].includes(currentUser?.role) && (
+                  <>
                     <button
                       onClick={() => setActiveTab('finance')}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
@@ -1235,21 +1257,24 @@ export default function App() {
                       <Printer className="w-4 h-4" />
                       <span>Cetak Laporan</span>
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setActiveTab('factories');
-                        setSelectedPabrikId('all');
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'factories'
-                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                        }`}
-                    >
-                      <Building2 className="w-4 h-4" />
-                      <span>Super Admin Pabrik</span>
-                    </button>
                   </>
+                )}
+
+                {/* Menu Super Admin Pabrik */}
+                {currentUser?.role === 'super_admin' && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('factories');
+                      setSelectedPabrikId('all');
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'factories'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>Super Admin Pabrik</span>
+                  </button>
                 )}
               </>
             )}
@@ -2852,7 +2877,7 @@ export default function App() {
           )}
 
           {/* TAB: LAPORAN KEUANGAN OTOMATIS (NERACA & LABA RUGI) */}
-          {activeTab === 'finance' && currentUser?.role === 'super_admin' && (
+          {activeTab === 'finance' && ['super_admin', 'admin_pabrik'].includes(currentUser?.role) && (
             <div className="space-y-6">
               {renderFactoryFilterBar(
                 'Laporan Keuangan Terpadu',
@@ -3026,12 +3051,116 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* 3. POSISI KAS & MUTASI PERBANKAN */}
+                <div className="dashboard-card p-6 lg:col-span-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-white/10 gap-3">
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Posisi Kas & Mutasi Perbankan</h3>
+                      <p className="text-[11px] text-slate-400">Monitoring likuiditas kas lancar dan rekening bank operasional (Akun 1001)</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
+                        Saldo: {formatIDR(metrics.kas)}
+                      </span>
+                      <button
+                        onClick={() => setActiveTab('banking')}
+                        className="px-3 py-1.5 bg-[#191a23] dark:bg-emerald-600 hover:bg-black text-white text-xs font-semibold rounded-full shadow-sm transition-all flex items-center gap-1.5"
+                      >
+                        <Landmark className="w-3.5 h-3.5" />
+                        <span>Buku Kas & Setoran</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Saldo Kas Berjalan</span>
+                      <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatIDR(metrics.kas)}</div>
+                      <span className="text-[10px] text-slate-400">Tersedia untuk operasional dan belanja stok</span>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Total Penerimaan Kas (Inflow)</span>
+                      <div className="text-2xl font-black text-slate-900 dark:text-white">
+                        {formatIDR((dashboardData?.recentJournals || []).reduce((sum, j) => {
+                          const kd = j.details?.find(d => d.kode_akun === '1001');
+                          return sum + (Number(kd?.debit) || 0);
+                        }, 0))}
+                      </div>
+                      <span className="text-[10px] text-emerald-600">Setoran pedagang & penerimaan kas</span>
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Total Pengeluaran Kas (Outflow)</span>
+                      <div className="text-2xl font-black text-slate-900 dark:text-white">
+                        {formatIDR((dashboardData?.recentJournals || []).reduce((sum, j) => {
+                          const kd = j.details?.find(d => d.kode_akun === '1001');
+                          return sum + (Number(kd?.kredit) || 0);
+                        }, 0))}
+                      </div>
+                      <span className="text-[10px] text-rose-500">Belanja stok, peralatan & biaya operasional</span>
+                    </div>
+                  </div>
+
+                  {/* Tabel Mutasi Kas Terkini */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Daftar Transaksi Kas & Bank Terkini</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <th className="pb-2.5">Tanggal & Bukti</th>
+                            <th className="pb-2.5">Tipe Transaksi</th>
+                            <th className="pb-2.5">Keterangan</th>
+                            <th className="pb-2.5 text-right">Kas Masuk (Debit)</th>
+                            <th className="pb-2.5 text-right">Kas Keluar (Kredit)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                          {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.details?.some(d => d.kode_akun === '1001')).length === 0) ? (
+                            <tr>
+                              <td colSpan="5" className="py-6 text-center text-slate-400 text-xs">
+                                Belum ada riwayat mutasi kas tercatat
+                              </td>
+                            </tr>
+                          ) : (
+                            dashboardData.recentJournals
+                              .filter(j => j.details?.some(d => d.kode_akun === '1001'))
+                              .slice(0, 8)
+                              .map((j) => {
+                                const kasDetail = j.details.find(d => d.kode_akun === '1001');
+                                return (
+                                  <tr key={j.id} className="hover:bg-slate-50/60 dark:hover:bg-white/5 transition-colors">
+                                    <td className="py-2.5">
+                                      <span className="font-bold text-slate-900 dark:text-white block">{j.nomor_bukti}</span>
+                                      <span className="text-[10px] text-slate-400">{j.tanggal}</span>
+                                    </td>
+                                    <td className="py-2.5">
+                                      <span className="text-[10px] font-semibold bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+                                        {j.tipe_transaksi}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 text-slate-700 dark:text-slate-300 max-w-xs truncate">{j.keterangan}</td>
+                                    <td className="py-2.5 text-right font-bold text-emerald-600">
+                                      {kasDetail.debit > 0 ? formatIDR(kasDetail.debit) : '-'}
+                                    </td>
+                                    <td className="py-2.5 text-right font-bold text-rose-500">
+                                      {kasDetail.kredit > 0 ? formatIDR(kasDetail.kredit) : '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
 
           {/* TAB: CETAK LAPORAN LENGKAP & ANALISA KEUANGAN */}
-          {activeTab === 'reports' && currentUser?.role === 'super_admin' && (
+          {activeTab === 'reports' && ['super_admin', 'admin_pabrik'].includes(currentUser?.role) && (
             <div className="space-y-6">
               {/* Header & Controls (Hidden in Print) */}
               <div className="no-print space-y-4">
@@ -3064,10 +3193,11 @@ export default function App() {
                     { id: 'all', label: 'Semua Laporan' },
                     { id: 'neraca', label: '1. Neraca Saldo' },
                     { id: 'laba_rugi', label: '2. Laba Rugi' },
-                    { id: 'persediaan', label: '3. Persediaan Barang' },
-                    { id: 'piutang', label: '4. Piutang Pedagang' },
-                    { id: 'aset', label: '5. Peralatan & Mesin' },
-                    { id: 'analisa', label: '6. Analisa Finansial' }
+                    { id: 'kas_bank', label: '3. Kas & Perbankan' },
+                    { id: 'persediaan', label: '4. Persediaan Barang' },
+                    { id: 'piutang', label: '5. Piutang Pedagang' },
+                    { id: 'aset', label: '6. Peralatan & Mesin' },
+                    { id: 'analisa', label: '7. Analisa Finansial' }
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -3431,13 +3561,122 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 5. BAGIAN III: LAPORAN PERSEDIAAN BARANG DAGANG */}
+                {/* 5. BAGIAN III: LAPORAN ARUS KAS & MUTASI PERBANKAN */}
+                {(reportFilterSection === 'all' || reportFilterSection === 'kas_bank') && (
+                  <div className="space-y-4 print-card">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+                      <div>
+                        <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
+                          III. Laporan Arus Kas & Posisi Perbankan (Statement of Cash Flows & Banking)
+                        </h3>
+                        <p className="text-[11px] text-slate-500 print:text-slate-600">
+                          Buku mutasi arus kas operasional, penerimaan setoran pedagang, dan saldo kas riil (Akun 1001)
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-200 dark:border-emerald-800">
+                        Saldo Kas: {formatIDR(metrics.kas)}
+                      </span>
+                    </div>
+
+                    {/* Ringkasan Arus Kas */}
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Saldo Kas Berjalan</span>
+                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 print:text-black block">{formatIDR(metrics.kas)}</span>
+                        <span className="text-[10px] text-slate-400">Kas & Bank Likuid</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Total Kas Masuk (Penerimaan)</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white print:text-black block">
+                          {formatIDR((dashboardData?.recentJournals || []).reduce((sum, j) => {
+                            const kd = j.details?.find(d => d.kode_akun === '1001');
+                            return sum + (Number(kd?.debit) || 0);
+                          }, 0))}
+                        </span>
+                        <span className="text-[10px] text-emerald-600">Penerimaan Setoran & Modal</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Total Kas Keluar (Pengeluaran)</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white print:text-black block">
+                          {formatIDR((dashboardData?.recentJournals || []).reduce((sum, j) => {
+                            const kd = j.details?.find(d => d.kode_akun === '1001');
+                            return sum + (Number(kd?.kredit) || 0);
+                          }, 0))}
+                        </span>
+                        <span className="text-[10px] text-rose-500">Belanja Stok, Aset & Beban</span>
+                      </div>
+                    </div>
+
+                    {/* Tabel Rincian Mutasi Kas */}
+                    <div className="border border-slate-200 dark:border-white/10 print:border-slate-400 rounded-xl overflow-hidden">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-100 dark:bg-white/10 print:bg-slate-200 text-slate-700 dark:text-slate-200 print:text-black font-extrabold uppercase text-[10px] border-b border-slate-200 dark:border-white/10">
+                          <tr>
+                            <th className="px-3 py-2 text-center w-10">No</th>
+                            <th className="px-3 py-2">Tanggal</th>
+                            <th className="px-3 py-2">No. Bukti</th>
+                            <th className="px-3 py-2">Tipe Transaksi</th>
+                            <th className="px-3 py-2">Keterangan Transaksi</th>
+                            <th className="px-3 py-2 text-right">Kas Masuk (IDR)</th>
+                            <th className="px-3 py-2 text-right">Kas Keluar (IDR)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5 print:divide-slate-300">
+                          {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.details?.some(d => d.kode_akun === '1001')).length === 0) ? (
+                            <tr>
+                              <td colSpan="7" className="py-6 text-center text-slate-400">
+                                Tidak ada catatan mutasi kas pada periode ini
+                              </td>
+                            </tr>
+                          ) : (
+                            dashboardData.recentJournals
+                              .filter(j => j.details?.some(d => d.kode_akun === '1001'))
+                              .map((j, idx) => {
+                                const kd = j.details.find(d => d.kode_akun === '1001');
+                                return (
+                                  <tr key={j.id} className="hover:bg-slate-50/60 dark:hover:bg-white/5">
+                                    <td className="px-3 py-2 text-center text-slate-400">{idx + 1}</td>
+                                    <td className="px-3 py-2 font-medium whitespace-nowrap">{j.tanggal}</td>
+                                    <td className="px-3 py-2 font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200 print:text-black">{j.nomor_bukti}</td>
+                                    <td className="px-3 py-2">
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                                        {j.tipe_transaksi}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300 max-w-xs">{j.keterangan}</td>
+                                    <td className="px-3 py-2 text-right font-bold text-emerald-600 print:text-black">
+                                      {kd.debit > 0 ? formatIDR(kd.debit) : '-'}
+                                    </td>
+                                    <td className="px-3 py-2 text-right font-bold text-rose-500 print:text-black">
+                                      {kd.kredit > 0 ? formatIDR(kd.kredit) : '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                          )}
+                        </tbody>
+                        <tfoot className="bg-slate-50 dark:bg-white/5 print:bg-slate-100 font-black text-xs border-t-2 border-slate-300 dark:border-white/20">
+                          <tr>
+                            <td colSpan="5" className="px-3 py-2.5 uppercase tracking-wider text-right">
+                              Saldo Kas & Bank Berjalan:
+                            </td>
+                            <td colSpan="2" className="px-3 py-2.5 text-right font-black text-sm text-emerald-700 dark:text-emerald-400 print:text-black">
+                              {formatIDR(metrics.kas)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. BAGIAN IV: LAPORAN PERSEDIAAN BARANG DAGANG */}
                 {(reportFilterSection === 'all' || reportFilterSection === 'persediaan') && (
                   <div className="space-y-4 print-card">
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          III. Laporan Persediaan Stok Barang Dagang (Inventory Valuation)
+                          IV. Laporan Persediaan Stok Barang Dagang (Inventory Valuation)
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
                           Rincian Stok Fisik Gudang, Harga Modal Beli (HPP), Nilai Aset, dan Estimasi Potensi Omset Penjualan
@@ -3528,13 +3767,13 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 6. BAGIAN IV: LAPORAN PENGAWASAN PIUTANG MITRA PEDAGANG */}
+                {/* 6. BAGIAN V: LAPORAN PENGAWASAN PIUTANG MITRA PEDAGANG */}
                 {(reportFilterSection === 'all' || reportFilterSection === 'piutang') && (
                   <div className="space-y-4 print-card">
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          IV. Laporan Pengawasan Piutang & Mitra Pedagang
+                          V. Laporan Pengawasan Piutang & Mitra Pedagang
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
                           Monitoring Plafon Kredit, Saldo Tagihan Aktif, dan Status Risiko Pembayaran Pedagang
@@ -3630,13 +3869,13 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 7. BAGIAN V: LAPORAN PERALATAN & ASET TETAP */}
+                {/* 7. BAGIAN VI: LAPORAN PERALATAN & ASET TETAP */}
                 {(reportFilterSection === 'all' || reportFilterSection === 'aset') && (
                   <div className="space-y-4 print-card">
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          V. Laporan Peralatan Pabrik & Aset Tetap (Fixed Assets)
+                          VI. Laporan Peralatan Pabrik & Aset Tetap (Fixed Assets)
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
                           Daftar Mesin Produksi, Alat Pengering, dan Sarana Operasional Pabrik
@@ -3692,13 +3931,13 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 8. BAGIAN VI: ANALISA RASIO FINANSIAL & EVALUASI BISNIS LENGKAP */}
+                {/* 8. BAGIAN VII: ANALISA RASIO FINANSIAL & EVALUASI BISNIS LENGKAP */}
                 {(reportFilterSection === 'all' || reportFilterSection === 'analisa') && (
                   <div className="space-y-4 print-card">
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          VI. Analisis Rasio Finansial & Evaluasi Manajemen
+                          VII. Analisis Rasio Finansial & Evaluasi Manajemen
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
                           Evaluasi Likuiditas, Profitabilitas, Solvabilitas, dan Efisiensi Modal Kerja

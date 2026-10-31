@@ -91,6 +91,19 @@ async function createJournalEntry({ pabrikId, tanggal, nomorBukti, tipeTransaksi
 }
 
 async function getAccountBalance(pabrikId, akunId) {
+  try {
+    const accs = await postgrestRequest(`tabel_akun_perkiraan?id=eq.${akunId}&pabrik_id=eq.${pabrikId}&select=id,saldo_normal,tabel_jurnal_detail(debit,kredit)`);
+    if (accs && accs.length > 0) {
+      const account = accs[0];
+      const details = account.tabel_jurnal_detail || [];
+      const totalDebit = details.reduce((sum, d) => sum + (Number(d.debit) || 0), 0);
+      const totalKredit = details.reduce((sum, d) => sum + (Number(d.kredit) || 0), 0);
+      return account.saldo_normal === 'debit' ? (totalDebit - totalKredit) : (totalKredit - totalDebit);
+    }
+  } catch (err) {
+    console.warn('Fallback getAccountBalance direct postgrest:', err.message);
+  }
+
   const account = await queryOne(`SELECT * FROM tabel_akun_perkiraan WHERE id = ? AND pabrik_id = ?`, [akunId, pabrikId]);
   if (!account) return 0;
 
@@ -103,8 +116,8 @@ async function getAccountBalance(pabrikId, akunId) {
     WHERE j.pabrik_id = ? AND d.akun_id = ?
   `, [pabrikId, akunId]);
 
-  const totalDebit = Number(mutasi.total_debit) || 0;
-  const totalKredit = Number(mutasi.total_kredit) || 0;
+  const totalDebit = Number(mutasi?.total_debit) || 0;
+  const totalKredit = Number(mutasi?.total_kredit) || 0;
 
   if (account.saldo_normal === 'debit') {
     return totalDebit - totalKredit;
@@ -400,6 +413,81 @@ async function catatBebanOperasional(pabrikId, { namaBeban, nominal, tanggal, ke
 
 // 1. Laba Rugi (Income Statement)
 async function getLabaRugi(pabrikId, startDate, endDate) {
+  if (typeof startDate === 'object' && startDate !== null) {
+    endDate = startDate.endDate;
+    startDate = startDate.startDate;
+  }
+
+  try {
+    let endpoint = `tabel_akun_perkiraan?tipe_akun=in.(pendapatan,beban)&select=id,pabrik_id,kode_akun,nama_akun,tipe_akun,saldo_normal,tabel_jurnal_detail(id,debit,kredit,jurnal_id,tabel_jurnal_transaksi(id,pabrik_id,tanggal))&order=kode_akun.asc`;
+    if (pabrikId && pabrikId !== 'all') {
+      endpoint += `&pabrik_id=eq.${Number(pabrikId)}`;
+    }
+    const accounts = await postgrestRequest(endpoint);
+
+    let totalPendapatan = 0;
+    let totalHPP = 0;
+    let totalBebanOperasional = 0;
+
+    const rincianPendapatan = [];
+    const rincianHPP = [];
+    const rincianBeban = [];
+
+    for (const acc of accounts) {
+      const details = (acc.tabel_jurnal_detail || []).filter(d => {
+        if (!d.tabel_jurnal_transaksi) return true;
+        if (startDate && d.tabel_jurnal_transaksi.tanggal < startDate) return false;
+        if (endDate && d.tabel_jurnal_transaksi.tanggal > endDate) return false;
+        if (pabrikId && pabrikId !== 'all' && Number(d.tabel_jurnal_transaksi.pabrik_id) !== Number(pabrikId)) return false;
+        return true;
+      });
+
+      const totalDebit = details.reduce((sum, d) => sum + (Number(d.debit) || 0), 0);
+      const totalKredit = details.reduce((sum, d) => sum + (Number(d.kredit) || 0), 0);
+
+      const row = {
+        id: acc.id,
+        pabrik_id: acc.pabrik_id,
+        kode_akun: acc.kode_akun,
+        nama_akun: acc.nama_akun,
+        tipe_akun: acc.tipe_akun,
+        saldo_normal: acc.saldo_normal,
+        total_debit: totalDebit,
+        total_kredit: totalKredit
+      };
+
+      if (acc.tipe_akun === 'pendapatan') {
+        const saldo = totalKredit - totalDebit;
+        totalPendapatan += saldo;
+        rincianPendapatan.push({ ...row, saldo });
+      } else if (acc.tipe_akun === 'beban') {
+        const saldo = totalDebit - totalKredit;
+        if (acc.kode_akun && acc.kode_akun.startsWith('5')) {
+          totalHPP += saldo;
+          rincianHPP.push({ ...row, saldo });
+        } else {
+          totalBebanOperasional += saldo;
+          rincianBeban.push({ ...row, saldo });
+        }
+      }
+    }
+
+    const labaKotor = totalPendapatan - totalHPP;
+    const labaBersih = labaKotor - totalBebanOperasional;
+
+    return {
+      pabrikId,
+      periode: { startDate: startDate || 'Semua', endDate: endDate || 'Saat Ini' },
+      pendapatan: { total: totalPendapatan, items: rincianPendapatan },
+      hpp: { total: totalHPP, items: rincianHPP },
+      labaKotor,
+      bebanOperasional: { total: totalBebanOperasional, items: rincianBeban },
+      labaBersih
+    };
+  } catch (err) {
+    console.warn('Fallback getLabaRugi via queryAll:', err.message);
+  }
+
   let dateFilter = '';
   const params = [];
   let wherePabrik = ' 1=1 ';
@@ -475,6 +563,110 @@ async function getLabaRugi(pabrikId, startDate, endDate) {
 
 // 2. Neraca (Balance Sheet)
 async function getNeraca(pabrikId, asOfDate) {
+  try {
+    let endpoint = `tabel_akun_perkiraan?select=id,pabrik_id,kode_akun,nama_akun,tipe_akun,saldo_normal,tabel_jurnal_detail(id,debit,kredit,jurnal_id,tabel_jurnal_transaksi(id,pabrik_id,tanggal))&order=kode_akun.asc`;
+    if (pabrikId && pabrikId !== 'all') {
+      endpoint += `&pabrik_id=eq.${Number(pabrikId)}`;
+    }
+    const accounts = await postgrestRequest(endpoint);
+
+    const asetLancar = [];
+    const asetTetap = [];
+    const kewajiban = [];
+    const ekuitas = [];
+
+    let totalAsetLancar = 0;
+    let totalAsetTetap = 0;
+    let totalKewajiban = 0;
+    let totalEkuitas = 0;
+    let totalPendapatan = 0;
+    let totalBeban = 0;
+
+    for (const acc of accounts) {
+      const details = (acc.tabel_jurnal_detail || []).filter(d => {
+        if (!d.tabel_jurnal_transaksi) return true;
+        if (asOfDate && d.tabel_jurnal_transaksi.tanggal > asOfDate) return false;
+        if (pabrikId && pabrikId !== 'all' && Number(d.tabel_jurnal_transaksi.pabrik_id) !== Number(pabrikId)) return false;
+        return true;
+      });
+
+      const totalDebit = details.reduce((sum, d) => sum + (Number(d.debit) || 0), 0);
+      const totalKredit = details.reduce((sum, d) => sum + (Number(d.kredit) || 0), 0);
+
+      let saldo = 0;
+      if (acc.saldo_normal === 'debit') {
+        saldo = totalDebit - totalKredit;
+      } else {
+        saldo = totalKredit - totalDebit;
+      }
+
+      const row = {
+        id: acc.id,
+        pabrik_id: acc.pabrik_id,
+        kode_akun: acc.kode_akun,
+        nama_akun: acc.nama_akun,
+        tipe_akun: acc.tipe_akun,
+        saldo_normal: acc.saldo_normal,
+        total_debit: totalDebit,
+        total_kredit: totalKredit,
+        saldo
+      };
+
+      if (acc.tipe_akun === 'aset_lancar') {
+        asetLancar.push(row);
+        totalAsetLancar += saldo;
+      } else if (acc.tipe_akun === 'aset_tetap') {
+        asetTetap.push(row);
+        totalAsetTetap += saldo;
+      } else if (acc.tipe_akun === 'kewajiban') {
+        kewajiban.push(row);
+        totalKewajiban += saldo;
+      } else if (acc.tipe_akun === 'ekuitas') {
+        ekuitas.push(row);
+        totalEkuitas += saldo;
+      } else if (acc.tipe_akun === 'pendapatan') {
+        totalPendapatan += (totalKredit - totalDebit);
+      } else if (acc.tipe_akun === 'beban') {
+        totalBeban += (totalDebit - totalKredit);
+      }
+    }
+
+    const labaPeriodeBerjalan = totalPendapatan - totalBeban;
+    ekuitas.push({
+      id: 0,
+      kode_akun: '3999',
+      nama_akun: 'Laba Periode Berjalan',
+      tipe_akun: 'ekuitas',
+      saldo_normal: 'kredit',
+      saldo: labaPeriodeBerjalan
+    });
+    totalEkuitas += labaPeriodeBerjalan;
+
+    const totalAset = totalAsetLancar + totalAsetTetap;
+    const totalKewajibanDanEkuitas = totalKewajiban + totalEkuitas;
+    const selisih = Math.round((totalAset - totalKewajibanDanEkuitas) * 100) / 100;
+    const isBalanced = Math.abs(selisih) < 0.01;
+
+    return {
+      pabrikId,
+      asOfDate: asOfDate || new Date().toISOString().slice(0, 10),
+      aset: {
+        lancar: { items: asetLancar, total: totalAsetLancar },
+        tetap: { items: asetTetap, total: totalAsetTetap },
+        totalAset
+      },
+      kewajibanDanEkuitas: {
+        kewajiban: { items: kewajiban, total: totalKewajiban },
+        ekuitas: { items: ekuitas, total: totalEkuitas },
+        totalKewajibanDanEkuitas
+      },
+      isBalanced,
+      selisih
+    };
+  } catch (err) {
+    console.warn('Fallback getNeraca via queryAll:', err.message);
+  }
+
   let dateFilter = '';
   const params = [];
   let wherePabrik = ' 1=1 ';
@@ -783,6 +975,147 @@ async function getGlobalConsolidation() {
   const now = Date.now();
   if (consolidationCache && (now - consolidationCacheTime) < CACHE_TTL_MS) {
     return consolidationCache;
+  }
+
+  try {
+    const [pabriks, pedagangs, produks, accounts] = await Promise.all([
+      postgrestRequest('tabel_pabrik?order=id.asc'),
+      postgrestRequest('tabel_pedagang?select=id,pabrik_id'),
+      postgrestRequest('tabel_produk?select=id,pabrik_id'),
+      postgrestRequest('tabel_akun_perkiraan?select=id,pabrik_id,kode_akun,nama_akun,tipe_akun,saldo_normal,tabel_jurnal_detail(id,debit,kredit,jurnal_id,tabel_jurnal_transaksi(id,pabrik_id,tanggal))&order=pabrik_id.asc,kode_akun.asc')
+    ]);
+
+    const pedagangMap = new Map();
+    for (const r of (pedagangs || [])) {
+      const pId = Number(r.pabrik_id);
+      pedagangMap.set(pId, (pedagangMap.get(pId) || 0) + 1);
+    }
+
+    const produkMap = new Map();
+    for (const r of (produks || [])) {
+      const pId = Number(r.pabrik_id);
+      produkMap.set(pId, (produkMap.get(pId) || 0) + 1);
+    }
+
+    const accountsByPabrik = new Map();
+    for (const acc of (accounts || [])) {
+      const pId = Number(acc.pabrik_id);
+      if (!accountsByPabrik.has(pId)) {
+        accountsByPabrik.set(pId, []);
+      }
+      accountsByPabrik.get(pId).push(acc);
+    }
+
+    const pabrikSummaries = [];
+    let globalKas = 0;
+    let globalPiutang = 0;
+    let globalPersediaan = 0;
+    let globalAsetTetap = 0;
+    let globalOmset = 0;
+    let globalHPP = 0;
+    let globalBebanOperasional = 0;
+    let globalLabaBersih = 0;
+
+    for (const p of (pabriks || [])) {
+      const pId = Number(p.id);
+      const rows = accountsByPabrik.get(pId) || [];
+
+      let kas = 0;
+      let piutang = 0;
+      let persediaan = 0;
+      let asetTetap = 0;
+      let totalAsetLancar = 0;
+      let totalKewajiban = 0;
+      let totalEkuitas = 0;
+      let totalPendapatan = 0;
+      let totalHPP = 0;
+      let totalBebanOperasional = 0;
+
+      for (const row of rows) {
+        const details = row.tabel_jurnal_detail || [];
+        const debit = details.reduce((sum, d) => sum + (Number(d.debit) || 0), 0);
+        const kredit = details.reduce((sum, d) => sum + (Number(d.kredit) || 0), 0);
+
+        if (row.tipe_akun === 'aset_lancar') {
+          const saldo = debit - kredit;
+          totalAsetLancar += saldo;
+          if (row.kode_akun === '1001') kas = saldo;
+          else if (row.kode_akun === '1002') piutang = saldo;
+          else if (row.kode_akun === '1003') persediaan = saldo;
+        } else if (row.tipe_akun === 'aset_tetap') {
+          const saldo = debit - kredit;
+          asetTetap += saldo;
+        } else if (row.tipe_akun === 'kewajiban') {
+          const saldo = kredit - debit;
+          totalKewajiban += saldo;
+        } else if (row.tipe_akun === 'ekuitas') {
+          const saldo = kredit - debit;
+          totalEkuitas += saldo;
+        } else if (row.tipe_akun === 'pendapatan') {
+          const saldo = kredit - debit;
+          totalPendapatan += saldo;
+        } else if (row.tipe_akun === 'beban') {
+          const saldo = debit - kredit;
+          if (row.kode_akun && row.kode_akun.startsWith('5')) {
+            totalHPP += saldo;
+          } else {
+            totalBebanOperasional += saldo;
+          }
+        }
+      }
+
+      const totalAset = totalAsetLancar + asetTetap;
+      const labaBersih = totalPendapatan - totalHPP - totalBebanOperasional;
+      const totalKewajibanDanEkuitas = totalKewajiban + totalEkuitas + labaBersih;
+      const isBalanced = Math.abs(totalAset - totalKewajibanDanEkuitas) < 0.01;
+
+      globalKas += kas;
+      globalPiutang += piutang;
+      globalPersediaan += persediaan;
+      globalAsetTetap += asetTetap;
+      globalOmset += totalPendapatan;
+      globalHPP += totalHPP;
+      globalBebanOperasional += totalBebanOperasional;
+      globalLabaBersih += labaBersih;
+
+      pabrikSummaries.push({
+        pabrik: p,
+        kas,
+        piutang,
+        persediaan,
+        asetTetap,
+        totalAset,
+        omset: totalPendapatan,
+        labaBersih,
+        jumlahPedagang: pedagangMap.get(pId) || 0,
+        jumlahProduk: produkMap.get(pId) || 0,
+        isBalanced
+      });
+    }
+
+    const result = {
+      totalPabrik: pabriks.length,
+      totals: {
+        kas: globalKas,
+        piutang: globalPiutang,
+        persediaan: globalPersediaan,
+        asetTetap: globalAsetTetap,
+        totalAset: globalKas + globalPiutang + globalPersediaan + globalAsetTetap,
+        omset: globalOmset,
+        hpp: globalHPP,
+        labaKotor: globalOmset - globalHPP,
+        bebanOperasional: globalBebanOperasional,
+        labaBersih: globalLabaBersih
+      },
+      factories: pabrikSummaries
+    };
+
+    consolidationCache = result;
+    consolidationCacheTime = Date.now();
+
+    return result;
+  } catch (err) {
+    console.warn('Fallback getGlobalConsolidation via SQL query:', err.message);
   }
 
   const sql = `
