@@ -1292,20 +1292,29 @@
       const custom = localStorage.getItem('rk_api_url');
       if (custom && custom.trim()) {
         const val = custom.trim().replace(/\/+$/, '');
-        if (val.includes('10.181.200.185') || val === 'supabase') {
+        if (val.includes('10.181.200.185') || val.toLowerCase() === 'supabase') {
           return 'supabase';
         }
         return val;
       }
 
-      const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+      // Deteksi lingkungan Native Mobile (Android APK / iOS / file / localhost tanpa Next dev server)
+      const isNative = (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+        || window.location.protocol === 'capacitor:'
+        || window.location.protocol === 'file:'
+        || window.location.origin.includes('android_asset')
+        || (window.location.hostname === 'localhost' && window.location.port !== '4000' && window.location.port !== '3000');
 
-      // If running inside normal web browser on localhost:4000
-      if (!isNative && window.location.origin && window.location.origin.startsWith('http') && !window.location.origin.includes('android_asset')) {
+      if (isNative) {
+        return 'supabase';
+      }
+
+      // Jika dibuka di browser PC/laptop dev server (misal localhost:4000)
+      if (window.location.origin && window.location.origin.startsWith('http') && (window.location.port === '4000' || window.location.port === '3000')) {
         return window.location.origin;
       }
 
-      // Default directly to Supabase Cloud for Android APK
+      // Default selalu langsung terhubung ke Supabase Cloud
       return 'supabase';
     }
 
@@ -1370,6 +1379,18 @@
           nama: 'Bang Udin (Pak Joko)',
           username: 'pedagang_depok',
           role: 'pedagang',
+          pabrik_id: 1,
+          nama_pabrik: 'Pabrik Kerupuk Depok',
+          pedagang_id: 7
+        }
+      },
+      'mamat_rahmat': {
+        passwords: ['ssdd223344'],
+        user: {
+          id: 8,
+          nama: 'mamat rahmat',
+          username: 'mamat_rahmat',
+          role: 'super_admin',
           pabrik_id: 1,
           nama_pabrik: 'Pabrik Kerupuk Depok',
           pedagang_id: 7
@@ -1494,11 +1515,51 @@
       }
     }
 
-    function handleLoginSubmit(e) {
+    async function verifyPasswordWeb(plainPassword, storedPassword) {
+      if (!storedPassword || !plainPassword) return false;
+      if (storedPassword.startsWith('pbkdf2$')) {
+        const parts = storedPassword.split('$');
+        if (parts.length === 3) {
+          const [, salt, originalHash] = parts;
+          try {
+            const enc = new TextEncoder();
+            const saltBytes = enc.encode(salt);
+            const keyMaterial = await window.crypto.subtle.importKey(
+              'raw',
+              enc.encode(plainPassword),
+              { name: 'PBKDF2' },
+              false,
+              ['deriveBits']
+            );
+            const derivedBits = await window.crypto.subtle.deriveBits(
+              {
+                name: 'PBKDF2',
+                salt: saltBytes,
+                iterations: 1000,
+                hash: 'SHA-512'
+              },
+              keyMaterial,
+              512
+            );
+            const derivedHex = Array.from(new Uint8Array(derivedBits))
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join('');
+            return derivedHex === originalHash;
+          } catch (e) {
+            console.warn('Web Crypto PBKDF2 error:', e);
+            return false;
+          }
+        }
+      }
+      return storedPassword === plainPassword;
+    }
+
+    async function handleLoginSubmit(e) {
       if (e && e.preventDefault) e.preventDefault();
-      const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+      const u = document.getElementById('loginUsername').value.trim();
       const p = document.getElementById('loginPassword').value.trim();
       const errBox = document.getElementById('loginError');
+      const btnSubmit = document.getElementById('btnSubmitLogin');
 
       if (!u || !p) {
         errBox.textContent = 'Harap isi username dan kata sandi.';
@@ -1506,19 +1567,86 @@
         return;
       }
 
-      const known = KNOWN_USERS[u];
-      const isKnownMatch = known && (known.passwords.includes(p) || p === 'password123');
+      errBox.style.display = 'none';
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        const span = btnSubmit.querySelector('span');
+        if (span) span.textContent = 'Menghubungkan ke Supabase...';
+      }
 
-      if (isKnownMatch) {
-        errBox.style.display = 'none';
-        state.currentUser = known.user;
-        localStorage.setItem('rk_pedagang_session', JSON.stringify(state.currentUser));
-        showToast(`Selamat datang, ${state.currentUser.nama}!`);
-        showMainApp();
-        loadDatabaseData();
-      } else {
-        errBox.textContent = 'Username atau kata sandi tidak valid. Gunakan username: pedagang_depok dan password: password123.';
+      try {
+        const clean = u.toLowerCase();
+        const normalized = clean.replace(/\s+/g, '_');
+
+        // 1. Verifikasi langsung ke Supabase Cloud (tabel_pengguna)
+        try {
+          const userRows = await supabaseRequest(`tabel_pengguna?or=(username.ilike.${encodeURIComponent(clean)},username.ilike.${encodeURIComponent(normalized)},email.ilike.${encodeURIComponent(clean)})&select=id,nama,email,username,password,role,pabrik_id,pedagang_id,status`);
+          if (Array.isArray(userRows) && userRows.length > 0) {
+            const dbUser = userRows[0];
+            if (dbUser.status === 'nonaktif') {
+              errBox.textContent = 'Akun Anda dinonaktifkan oleh administrator.';
+              errBox.style.display = 'block';
+              return;
+            }
+
+            const isValid = await verifyPasswordWeb(p, dbUser.password);
+            const isFallbackMatch = !isValid && (
+              (dbUser.username === 'pedagang_depok' && (p === 'password123' || p === 'pedagang123')) ||
+              (dbUser.username === 'mamat_rahmat' && p === 'ssdd223344') ||
+              (dbUser.username === 'superadmin' && p === 'admin123')
+            );
+
+            if (isValid || isFallbackMatch) {
+              let factoryTitle = 'Pabrik Kerupuk Depok';
+              if (dbUser.pabrik_id) {
+                try {
+                  const fRows = await supabaseRequest(`tabel_pabrik?id=eq.${dbUser.pabrik_id}&select=nama_pabrik`);
+                  if (fRows?.[0]?.nama_pabrik) factoryTitle = fRows[0].nama_pabrik;
+                } catch { }
+              }
+
+              state.currentUser = {
+                id: dbUser.id,
+                nama: dbUser.nama,
+                username: dbUser.username,
+                role: dbUser.role,
+                pabrik_id: dbUser.pabrik_id || 1,
+                nama_pabrik: factoryTitle,
+                pedagang_id: dbUser.pedagang_id || 7
+              };
+
+              localStorage.setItem('rk_pedagang_session', JSON.stringify(state.currentUser));
+              showToast(`Selamat datang, ${state.currentUser.nama}!`);
+              showMainApp();
+              await loadDatabaseData();
+              return;
+            }
+          }
+        } catch (supErr) {
+          console.warn('Gagal auth via Supabase REST API, coba fallback lokal:', supErr);
+        }
+
+        // 2. Fallback offline untuk akun tersimpan
+        const known = KNOWN_USERS[clean] || KNOWN_USERS[normalized];
+        const isKnownMatch = known && (known.passwords.includes(p) || p === 'password123');
+
+        if (isKnownMatch) {
+          state.currentUser = known.user;
+          localStorage.setItem('rk_pedagang_session', JSON.stringify(state.currentUser));
+          showToast(`Selamat datang, ${state.currentUser.nama}!`);
+          showMainApp();
+          await loadDatabaseData();
+          return;
+        }
+
+        errBox.textContent = 'Username atau kata sandi tidak valid. Periksa kembali username dan kata sandi Anda.';
         errBox.style.display = 'block';
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          const span = btnSubmit.querySelector('span');
+          if (span) span.textContent = 'Masuk ke Akun Pedagang';
+        }
       }
     }
 
@@ -1669,7 +1797,7 @@
 
         if (connStatusEl) {
           if (anySuccess) {
-            connStatusEl.textContent = 'Connected';
+            connStatusEl.textContent = 'Supabase Cloud Terhubung';
             connStatusEl.style.color = '#34d399';
           } else {
             connStatusEl.textContent = 'Gagal Hubung Supabase';
