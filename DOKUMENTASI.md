@@ -64,13 +64,15 @@ Setiap transaksi operasional secara otomatis menjurnal pasangan akun berimbang:
 1. **Super Admin Utama (`superadmin`)**:
    - Memantau konsolidasi seluruh pabrik di Indonesia (*Semua Pabrik*).
    - Akses penuh ke 9 menu sistem: Dashboard, Distribusi & Piutang, Check-Point, Persediaan Stok, Kas & Perbankan, Peralatan & Aset, Laporan Keuangan, Cetak Laporan, dan Super Admin Pabrik.
-2. **Pengguna Khusus Super Admin Pabrik (`mamat_rahmat`)**:
-   - Akses lintas pabrik dengan fokus manajerial dan pelaporan tingkat tinggi.
-   - Hak akses UI dan rute aktif dibatasi ketat pada 4 menu utama:
+2. **Pengguna Khusus Pemilik Modal (`mamat_rahmat`)**:
+   - Berperan sebagai investor / pemilik modal dengan hak akses manajerial dan monitoring aset.
+   - Hak akses UI dan rute aktif mencakup 5 menu utama:
      1. Dashboard
-     2. Laporan Keuangan
-     3. Cetak Laporan
-     4. Super Admin Pabrik
+     2. Kas & Perbankan (Monitoring Modal Ditanam, Alokasi Penggunaan Modal, dan Fitur Tambah/Setor Modal)
+     3. Laporan Keuangan
+     4. Cetak Laporan
+     5. Super Admin Pabrik
+   - Dilengkapi kartu breakdown real-time mengenai berapa total modal yang ditanam (Akun 3001) serta alokasi modal tersebut digunakan untuk apa saja (Mesin Peralatan, Stok Persediaan, Piutang Toko Lapangan, dan Sisa Kas Likuid).
 3. **Admin Pabrik (`admin_pabrik`)**:
    - Terisolasi khusus pada data pabrik yang bersangkutan (`pabrik_id`).
    - Mengelola operasional harian: Distribusi, Check-Point, Persediaan Stok, Kas Operasional, Laporan Keuangan, dan Cetak Laporan.
@@ -106,6 +108,6 @@ cp android/app/build/outputs/apk/debug/app-debug.apk public/apk/raja-kerupuk-ped
 | Username / Identifier | Password | Peran (Role) | Lingkup Pabrik | Hak Akses Menu |
 |---|---|---|---|---|
 | `superadmin` | `admin123` | `super_admin` | Seluruh Pabrik | 9 Menu Lengkap |
-| `mamat_rahmat` / `mamat rahmat` | `ssdd223344` | `super_admin` | Seluruh Pabrik | 4 Menu Khusus (Dashboard, Laporan Keuangan, Cetak Laporan, Super Admin Pabrik) |
+| `mamat_rahmat` / `mamat rahmat` | `ssdd223344` | `super_admin` | Seluruh Pabrik | 5 Menu (Dashboard, Kas & Perbankan / Modal, Laporan Keuangan, Cetak Laporan, Super Admin Pabrik) |
 | `admin_depok` | `depok123` | `admin_pabrik` | Pabrik Depok (ID: 1) | Menu Operasional Pabrik Depok |
 | `pedagang_depok` | `password123` | `pedagang` | Pabrik Depok (ID: 1) | Portal Mobile Pedagang |

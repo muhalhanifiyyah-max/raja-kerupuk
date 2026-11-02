@@ -10,7 +10,7 @@ Sistem pembukuan dan akuntansi multi-tenant terpadu berbasis Next.js 16, Supabas
 
 ### 1. Multi-Tenant Architecture & Manajemen Pabrik
 - **Super Admin**: Memantau konsolidasi seluruh pabrik di Indonesia (Total Omset Global, Posisi Kas Global, Piutang Mengendap Global, dan Nilai Persediaan), manajemen entitas pabrik (CRUD), serta manajemen hak akses pengguna.
-- **Pengguna Khusus Super Admin Pabrik (`mamat_rahmat`)**: Hak akses manajerial terfokus pada 4 menu inti: Dashboard, Laporan Keuangan, Cetak Laporan, dan Super Admin Pabrik.
+- **Pemilik Modal & Super Admin Pabrik (`mamat_rahmat`)**: Hak akses manajerial dan monitoring aset pemilik modal mencakup 5 menu inti: Dashboard, Kas & Perbankan (Monitoring Total Modal, Alokasi Penggunaan Modal, dan Fitur Tambah/Setor Modal), Laporan Keuangan, Cetak Laporan, dan Super Admin Pabrik.
 - **Admin Pabrik**: Terisolasi khusus untuk data pabriknya sendiri (`pabrik_id`), mencatat transaksi modal, pembelian aset, persediaan, distribusi, dan setoran kas mitra pedagang.
 - **Mitra Pedagang Lapangan**: Pengelolaan limit kredit piutang barang titipan, status kelancaran pembayaran, serta buku pembantu (**Kartu Piutang**).
 
@@ -94,7 +94,7 @@ File APK siap unduh tersedia di:
 | Username / Identifier | Password | Peran (Role) | Lingkup Pabrik | Hak Akses Menu |
 |---|---|---|---|---|
 | `superadmin` | `admin123` | `super_admin` | Seluruh Pabrik | 9 Menu Lengkap |
-| `mamat_rahmat` / `mamat rahmat` | `ssdd223344` | `super_admin` | Seluruh Pabrik | 4 Menu Khusus (Dashboard, Laporan Keuangan, Cetak Laporan, Super Admin Pabrik) |
+| `mamat_rahmat` / `mamat rahmat` | `ssdd223344` | `super_admin` | Seluruh Pabrik | 5 Menu (Dashboard, Kas & Perbankan / Modal, Laporan Keuangan, Cetak Laporan, Super Admin Pabrik) |
 | `admin_depok` | `depok123` | `admin_pabrik` | Pabrik Depok (ID: 1) | Menu Operasional Pabrik Depok |
 | `pedagang_depok` | `password123` | `pedagang` | Pabrik Depok (ID: 1) | Portal Mobile Pedagang |
 

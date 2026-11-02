@@ -134,7 +134,8 @@ export default function App() {
   const [checkpointPaymentFilter, setCheckpointPaymentFilter] = useState('all'); // 'all' | 'tunai' | 'piutang'
 
   // Form states
-  const [modalForm, setModalForm] = useState({ nominal: '', tanggal: '', keterangan: '' });
+  const [modalForm, setModalForm] = useState({ nominal: '', tanggal: '', keterangan: '', pabrik_id: '' });
+  const [kasFilterTipe, setKasFilterTipe] = useState('ALL');
   const [peralatanForm, setPeralatanForm] = useState({ nama_item: '', harga: '', qty: 1, tanggal: '', keterangan: '' });
   const [persediaanForm, setPersediaanForm] = useState({ produk_id: '', qty: '', harga_beli: '', tanggal: '', keterangan: '' });
   const [distribusiForm, setDistribusiForm] = useState({ pedagang_id: '', produk_id: '', qty: '', harga_jual: '', tanggal: '', keterangan: '' });
@@ -155,10 +156,10 @@ export default function App() {
     if (currentUser.role === 'pedagang') {
       return menuKey === 'pedagang_portal';
     }
-    // Khusus pengguna mamat rahmat dengan 4 menu terfokus:
-    // 1. Dashboard, 2. Laporan Keuangan, 3. Cetak Laporan, 4. Super Admin Pabrik
+    // Khusus pengguna mamat rahmat (pemilik modal):
+    // 1. Dashboard, 2. Kas & Perbankan (Modal & Likuiditas), 3. Laporan Keuangan, 4. Cetak Laporan, 5. Super Admin Pabrik
     if (currentUser.username === 'mamat_rahmat' || currentUser.username === 'mamat') {
-      return ['dashboard', 'finance', 'reports', 'factories'].includes(menuKey);
+      return ['dashboard', 'banking', 'finance', 'reports', 'factories'].includes(menuKey);
     }
     if (currentUser.role === 'super_admin') {
       return ['dashboard', 'sales', 'checkpoints', 'inventory', 'banking', 'purchases', 'finance', 'reports', 'factories'].includes(menuKey);
@@ -499,7 +500,7 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
     if (currentUser.username === 'mamat_rahmat' || currentUser.username === 'mamat') {
-      const allowedTabs = ['dashboard', 'finance', 'reports', 'factories'];
+      const allowedTabs = ['dashboard', 'banking', 'finance', 'reports', 'factories'];
       if (!allowedTabs.includes(activeTab)) {
         setActiveTab('dashboard');
         showToast('Akses dibatasi. Anda dialihkan ke Dashboard.', 'error');
@@ -699,16 +700,18 @@ export default function App() {
   // Generic Submit Transaction
   const handleTransactionSubmit = async (endpoint, payload, successMsg) => {
     try {
+      const targetPabrikId = payload.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : (factories[0]?.id || 1));
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, pabrik_id: selectedPabrikId })
+        body: JSON.stringify({ ...payload, pabrik_id: targetPabrikId })
       });
       const data = await res.json();
       if (data.success) {
         showToast(successMsg);
         setActiveModal(null);
         await loadDashboard(selectedPabrikId);
+        await loadCheckpoints(selectedPabrikId);
       } else {
         showToast(data.error || 'Transaksi gagal', 'error');
       }
@@ -888,6 +891,26 @@ export default function App() {
   const roa = metrics.totalAset > 0 ? ((metrics.labaBersih / metrics.totalAset) * 100).toFixed(1) : '0';
   const arToSalesRatio = metrics.penjualan > 0 ? ((metrics.piutang / metrics.penjualan) * 100).toFixed(1) : '0';
   const cashRatio = totalAsetLancar > 0 ? ((metrics.kas / totalAsetLancar) * 100).toFixed(1) : '0';
+
+  // Perhitungan Khusus Pemilik Modal (Mamat Rahmat / Investor)
+  const modalDisetorAccount = dashboardData?.neracaSummary?.kewajibanDanEkuitas?.ekuitas?.items?.find(i => i.kode_akun === '3001');
+  const totalModalDitanam = modalDisetorAccount 
+    ? Number(modalDisetorAccount.saldo) 
+    : (Number(metrics.totalAset || 0) - Number(metrics.labaBersih || 0));
+  const totalModalFinal = totalModalDitanam > 0 ? totalModalDitanam : (Number(currentFactory?.modal_awal) || 0);
+
+  // Alokasi modal digunakan untuk apa saja:
+  const alokasiKas = Math.max(0, Number(metrics.kas || 0));
+  const alokasiPeralatan = Math.max(0, Number(metrics.peralatan || 0));
+  const alokasiPersediaan = Math.max(0, Number(metrics.persediaan || 0));
+  const alokasiPiutang = Math.max(0, Number(metrics.piutang || 0));
+  const totalAsetAktif = alokasiKas + alokasiPeralatan + alokasiPersediaan + alokasiPiutang;
+
+  const persenKas = totalAsetAktif > 0 ? ((alokasiKas / totalAsetAktif) * 100).toFixed(1) : '0';
+  const persenPeralatan = totalAsetAktif > 0 ? ((alokasiPeralatan / totalAsetAktif) * 100).toFixed(1) : '0';
+  const persenPersediaan = totalAsetAktif > 0 ? ((alokasiPersediaan / totalAsetAktif) * 100).toFixed(1) : '0';
+  const persenPiutang = totalAsetAktif > 0 ? ((alokasiPiutang / totalAsetAktif) * 100).toFixed(1) : '0';
+  const modalTeralokasi = alokasiPeralatan + alokasiPersediaan + alokasiPiutang;
 
   // Peralatan / Aset Tetap list from journals
   const peralatanItems = recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERALATAN');
@@ -2806,63 +2829,327 @@ export default function App() {
           {activeTab === 'banking' && (
             <div className="space-y-6">
               {renderFactoryFilterBar(
-                'Kas & Perbankan',
-                'Buku mutasi kas lancar dan penerimaan setoran pelunasan pedagang',
-                currentUser?.role === 'admin_pabrik' ? (
-                  <button
-                    onClick={() => setActiveModal('setoran')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                  >
-                    <ArrowDownLeft className="w-3.5 h-3.5" />
-                    <span>Terima Setoran Pedagang</span>
-                  </button>
-                ) : null
+                'Kas, Perbankan & Modal Pemilik',
+                'Monitoring total modal yang ditanam, alokasi penggunaan modal, dan mutasi arus kas lancar',
+                <div className="flex items-center gap-2">
+                  {['super_admin', 'admin_pabrik'].includes(currentUser?.role) && (
+                    <button
+                      onClick={() => {
+                        setModalForm({
+                          nominal: '',
+                          tanggal: new Date().toISOString().slice(0, 10),
+                          keterangan: 'Penyetoran Modal Pemilik',
+                          pabrik_id: selectedPabrikId !== 'all' ? selectedPabrikId : String(factories[0]?.id || 1)
+                        });
+                        setActiveModal('modal_awal');
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full shadow-sm transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Setor / Tambah Modal</span>
+                    </button>
+                  )}
+                  {currentUser?.role === 'admin_pabrik' && (
+                    <button
+                      onClick={() => setActiveModal('setoran')}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] dark:bg-white/10 text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                    >
+                      <ArrowDownLeft className="w-3.5 h-3.5" />
+                      <span>Terima Setoran Pedagang</span>
+                    </button>
+                  )}
+                </div>
               )}
 
-              {/* Kas Card */}
-              <div className="dashboard-card p-6 bg-gradient-to-r from-slate-900 to-[#191a23] text-white">
-                <span className="text-xs uppercase tracking-wider text-emerald-400 font-bold block mb-1">
-                  Saldo Kas Berjalan
-                </span>
-                <div className="text-3xl font-extrabold tracking-tight mb-2">
-                  {formatIDR(metrics.kas)}
+              {/* 1. KARTU MONITORING MODAL PEMILIK (MAMAT RAHMAT / INVESTOR) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Total Modal Ditanam */}
+                <div className="dashboard-card p-5 bg-gradient-to-br from-slate-900 to-[#191a23] text-white flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                        Total Modal Ditanam
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                        Akun 3001
+                      </span>
+                    </div>
+                    <div className="text-2xl font-extrabold tracking-tight mb-1 text-white">
+                      {formatIDR(totalModalFinal)}
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Total modal disetor yang telah diinvestasikan pemilik ke unit pabrik
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setModalForm({
+                        nominal: '',
+                        tanggal: new Date().toISOString().slice(0, 10),
+                        keterangan: 'Penyetoran Modal Pemilik',
+                        pabrik_id: selectedPabrikId !== 'all' ? selectedPabrikId : String(factories[0]?.id || 1)
+                      });
+                      setActiveModal('modal_awal');
+                    }}
+                    className="mt-4 w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Modal Baru</span>
+                  </button>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Semua transaksi tercatat rapi dalam jurnal debit/kredit Kas & Bank (1001)
-                </p>
+
+                {/* Sisa Kas & Bank Tersedia */}
+                <div className="dashboard-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Sisa Kas & Bank
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                        Akun 1001
+                      </span>
+                    </div>
+                    <div className="text-2xl font-extrabold tracking-tight mb-1 text-slate-900 dark:text-white">
+                      {formatIDR(metrics.kas)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Saldo kas tunai dan tabungan bank siap pakai ({persenKas}% dari total aset)
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Status Likuiditas</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Siap Operasional</span>
+                  </div>
+                </div>
+
+                {/* Modal Teralokasi ke Mesin & Operasional */}
+                <div className="dashboard-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Modal Terpakai
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                        Aset & Lapangan
+                      </span>
+                    </div>
+                    <div className="text-2xl font-extrabold tracking-tight mb-1 text-slate-900 dark:text-white">
+                      {formatIDR(modalTeralokasi)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Dana yang telah dibelanjakan mesin, stok kerupuk, dan piutang toko
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Rasio Pemanfaatan</span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {totalAsetAktif > 0 ? (((modalTeralokasi) / totalAsetAktif) * 100).toFixed(1) : 0}% Aktif
+                    </span>
+                  </div>
+                </div>
+
+                {/* Laba Bersih yang Dihasilkan */}
+                <div className="dashboard-card p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Hasil Usaha (Net Profit)
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${Number(metrics.labaBersih) >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600'}`}>
+                        Akun 3999
+                      </span>
+                    </div>
+                    <div className={`text-2xl font-extrabold tracking-tight mb-1 ${Number(metrics.labaBersih) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                      {formatIDR(metrics.labaBersih)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Pertumbuhan hasil usaha bersih setelah dikurangi HPP dan beban operasional
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Margin Usaha</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {netProfitMargin}% Net Margin
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Mutasi Kas Table */}
+              {/* 2. RINCIAN MODAL YANG DITANAM DIGUNAKAN UNTUK APA SAJA */}
               <div className="dashboard-card p-6">
-                <h3 className="font-bold text-sm text-slate-900 mb-4">Semua Riwayat Jurnal Kas</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-white/10 gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      Rincian Alokasi Modal: Digunakan Untuk Apa Saja?
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Transparansi penyerapan dana modal pemilik ke dalam instrumen aset produktif dan kas likuid pabrik
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800 self-start sm:self-auto">
+                    Total Nilai Aset: {formatIDR(totalAsetAktif)}
+                  </span>
+                </div>
+
+                {/* Progress bar alokasi proporsional */}
+                <div className="space-y-2 mb-6">
+                  <div className="h-3 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden flex">
+                    <div style={{ width: `${persenKas}%` }} className="bg-emerald-500 h-full transition-all" title={`Kas: ${persenKas}%`} />
+                    <div style={{ width: `${persenPeralatan}%` }} className="bg-indigo-500 h-full transition-all" title={`Peralatan: ${persenPeralatan}%`} />
+                    <div style={{ width: `${persenPersediaan}%` }} className="bg-amber-500 h-full transition-all" title={`Persediaan: ${persenPersediaan}%`} />
+                    <div style={{ width: `${persenPiutang}%` }} className="bg-sky-500 h-full transition-all" title={`Piutang: ${persenPiutang}%`} />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2">
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Sisa Kas ({persenKas}%)</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Mesin & Peralatan ({persenPeralatan}%)</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Stok Persediaan ({persenPersediaan}%)</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Piutang Toko Lapangan ({persenPiutang}%)</span>
+                  </div>
+                </div>
+
+                {/* 4 Kotak Rincian Penggunaan */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Pos 1: Kas & Bank */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">1. Sisa Kas & Bank</span>
+                      <span className="text-[10px] font-mono text-emerald-600 font-bold">{persenKas}%</span>
+                    </div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatIDR(alokasiKas)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Uang tunai dan tabungan bank yang belum terpakai, siap untuk belanja bahan atau ekspansi
+                    </p>
+                  </div>
+
+                  {/* Pos 2: Mesin & Peralatan */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">2. Mesin & Peralatan</span>
+                      <span className="text-[10px] font-mono text-indigo-600 font-bold">{persenPeralatan}%</span>
+                    </div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatIDR(alokasiPeralatan)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Modal yang dibelikan aset tetap: mesin cetak kerupuk, wajan penggorengan, dan sarana pabrik
+                    </p>
+                  </div>
+
+                  {/* Pos 3: Persediaan Kerupuk */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">3. Stok Persediaan</span>
+                      <span className="text-[10px] font-mono text-amber-600 font-bold">{persenPersediaan}%</span>
+                    </div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatIDR(alokasiPersediaan)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Modal yang dibelanjakan menjadi bahan baku & stok kerupuk di gudang ({totalPersediaanQty} Bal)
+                    </p>
+                  </div>
+
+                  {/* Pos 4: Piutang Lapangan */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">4. Piutang Beredar</span>
+                      <span className="text-[10px] font-mono text-sky-600 font-bold">{persenPiutang}%</span>
+                    </div>
+                    <div className="text-lg font-black text-slate-900 dark:text-white">
+                      {formatIDR(alokasiPiutang)}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Modal yang sedang berputar di warung mitra (barang dititip bon dan menunggu setoran)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. TABEL MUTASI KAS DENGAN FILTER PENGGUNAAN MODAL */}
+              <div className="dashboard-card p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-white/10 gap-3">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">Riwayat Mutasi Kas & Penggunaan Modal</h3>
+                    <p className="text-[11px] text-slate-400">Audit trail keluar masuk kas dan realisasi pengeluaran modal</p>
+                  </div>
+
+                  {/* Filter Kategori Mutasi Kas */}
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                    <button
+                      onClick={() => setKasFilterTipe('ALL')}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'ALL' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Semua Mutasi
+                    </button>
+                    <button
+                      onClick={() => setKasFilterTipe('MODAL')}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'MODAL' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Setor Modal (3001)
+                    </button>
+                    <button
+                      onClick={() => setKasFilterTipe('BELI_PERALATAN')}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'BELI_PERALATAN' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Beli Mesin / Aset
+                    </button>
+                    <button
+                      onClick={() => setKasFilterTipe('BELI_PERSEDIAAN')}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'BELI_PERSEDIAAN' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Belanja Persediaan
+                    </button>
+                    <button
+                      onClick={() => setKasFilterTipe('SETORAN_PIUTANG')}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'SETORAN_PIUTANG' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      Setoran Pedagang
+                    </button>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <tr className="border-b border-slate-100 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal & Bukti</th>
                         <th className="pb-3">Pabrik</th>
-                        <th className="pb-3">Keterangan</th>
-                        <th className="pb-3">Tipe Transaksi</th>
-                        <th className="pb-3 text-right">Debit (Masuk)</th>
-                        <th className="pb-3 text-right">Kredit (Keluar)</th>
+                        <th className="pb-3">Keterangan / Keperluan</th>
+                        <th className="pb-3">Kategori Transaksi</th>
+                        <th className="pb-3 text-right">Debit (Kas Masuk)</th>
+                        <th className="pb-3 text-right">Kredit (Kas Keluar)</th>
                         <th className="pb-3 text-right pr-2">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.details?.some(d => d.kode_akun === '1001')).length === 0) ? (
-                        <tr>
-                          <td colSpan="7" className="py-8 text-center text-slate-400 text-xs">
-                            Belum ada riwayat mutasi kas tercatat
-                          </td>
-                        </tr>
-                      ) : (
-                        dashboardData.recentJournals.map((j) => {
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                      {(() => {
+                        const filteredJournals = recentJournals.filter(j => {
+                          const hasKas = j.details?.some(d => d.kode_akun === '1001');
+                          if (!hasKas) return false;
+                          if (kasFilterTipe === 'ALL') return true;
+                          if (kasFilterTipe === 'MODAL') return j.tipe_transaksi === 'MODAL' || j.tipe_transaksi === 'MODAL_AWAL';
+                          return j.tipe_transaksi === kasFilterTipe;
+                        });
+
+                        if (filteredJournals.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan="7" className="py-8 text-center text-slate-400 text-xs">
+                                Belum ada riwayat mutasi kas untuk kategori ini
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredJournals.map((j) => {
                           const kasDetail = j.details.find(d => d.kode_akun === '1001');
                           if (!kasDetail) return null;
                           return (
-                            <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={j.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                               <td className="py-3">
-                                <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                                <span className="font-bold text-slate-900 dark:text-white text-xs block">{j.nomor_bukti}</span>
                                 <span className="text-[11px] text-slate-400">{j.tanggal}</span>
                               </td>
                               <td className="py-3">
@@ -2870,13 +3157,26 @@ export default function App() {
                                   {j.nama_pabrik || 'Pabrik'}
                                 </span>
                               </td>
-                              <td className="py-3 text-xs text-slate-700">{j.keterangan}</td>
+                              <td className="py-3 text-xs text-slate-700 dark:text-slate-300">
+                                <div className="font-semibold">{j.keterangan}</div>
+                                {j.referensi && <div className="text-[10px] text-slate-400">Ref: {j.referensi}</div>}
+                              </td>
                               <td className="py-3">
-                                <span className="text-[11px] font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                                  {j.tipe_transaksi}
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                                  j.tipe_transaksi?.includes('MODAL') ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300' :
+                                  j.tipe_transaksi === 'BELI_PERALATAN' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300' :
+                                  j.tipe_transaksi === 'BELI_PERSEDIAAN' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300' :
+                                  j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300' :
+                                  'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+                                }`}>
+                                  {j.tipe_transaksi?.includes('MODAL') ? 'Setoran Modal Pemilik' :
+                                   j.tipe_transaksi === 'BELI_PERALATAN' ? 'Beli Mesin / Aset' :
+                                   j.tipe_transaksi === 'BELI_PERSEDIAAN' ? 'Belanja Persediaan' :
+                                   j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'Setoran Piutang Pedagang' :
+                                   j.tipe_transaksi}
                                 </span>
                               </td>
-                              <td className="py-3 text-right font-bold text-emerald-600">
+                              <td className="py-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                                 {kasDetail.debit > 0 ? formatIDR(kasDetail.debit) : '-'}
                               </td>
                               <td className="py-3 text-right font-bold text-rose-500">
@@ -2887,28 +3187,29 @@ export default function App() {
                                   <div className="flex items-center justify-end gap-1">
                                     <button
                                       onClick={() => openEditTransaction(j)}
-                                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                                       title="Edit Transaksi"
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       onClick={() => openDeleteTransaction(j)}
-                                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                      className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                                       title="Hapus Transaksi"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 rounded-full">
                                     Tervalidasi
                                   </span>
                                 )}
                               </td>
                             </tr>
                           );
-                        }))}
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -5408,60 +5709,97 @@ export default function App() {
       {/* MODAL 1: SETOR MODAL AWAL */}
       {activeModal === 'modal_awal' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-900">Penyetoran Modal Awal</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Penyetoran Modal Pemilik</h3>
+                <p className="text-xs text-slate-400">Tambahkan modal yang ditanam ke kas & bank pabrik</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleTransactionSubmit('/api/transaksi/modal', modalForm, 'Penyetoran modal awal berhasil dicatat!');
+              handleTransactionSubmit('/api/transaksi/modal', modalForm, 'Penyetoran modal pemilik berhasil dicatat!');
             }} className="space-y-4">
+              {/* Pilihan Pabrik Penerima Modal */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Nominal Modal (Rp)</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pabrik Tujuan Penanaman Modal</label>
+                <select
+                  required
+                  value={modalForm.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : String(factories[0]?.id || 1))}
+                  onChange={(e) => setModalForm({ ...modalForm, pabrik_id: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none dark:bg-[#14151c] dark:border-white/10 dark:text-white"
+                >
+                  {factories.map(f => (
+                    <option key={f.id} value={f.id}>{f.nama_pabrik}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tanggal Setor */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Tanggal Transaksi</label>
+                <input
+                  type="date"
+                  required
+                  value={modalForm.tanggal || new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setModalForm({ ...modalForm, tanggal: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none dark:bg-[#14151c] dark:border-white/10 dark:text-white"
+                />
+              </div>
+
+              {/* Nominal Modal */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nominal Modal Disetor (Rp)</label>
                 <input
                   type="number"
                   required
                   placeholder="Contoh: 100000000"
                   value={modalForm.nominal}
                   onChange={(e) => setModalForm({ ...modalForm, nominal: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono dark:bg-[#14151c] dark:border-white/10 dark:text-white"
                 />
+                {modalForm.nominal > 0 && (
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                    {formatIDR(modalForm.nominal)}
+                  </p>
+                )}
               </div>
 
+              {/* Keterangan */}
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Keterangan</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Keterangan / Referensi Penyetor</label>
                 <input
                   type="text"
-                  placeholder="Penyetoran Modal Pemilik"
+                  placeholder="Contoh: Tambahan Modal Investasi dari Mamat Rahmat"
                   value={modalForm.keterangan}
                   onChange={(e) => setModalForm({ ...modalForm, keterangan: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none dark:bg-[#14151c] dark:border-white/10 dark:text-white"
                 />
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-2xl text-xs space-y-1 text-slate-600 border border-slate-100">
-                <p className="font-bold text-slate-800">Dampak Jurnal Akuntansi:</p>
-                <p>• Kas (Aset Lancar) [Debit] + Rp {Number(modalForm.nominal || 0).toLocaleString('id-ID')}</p>
-                <p>• Modal Disetor [Kredit] + Rp {Number(modalForm.nominal || 0).toLocaleString('id-ID')}</p>
+              <div className="bg-slate-50 dark:bg-white/5 p-3 rounded-2xl text-xs space-y-1 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-white/10">
+                <p className="font-bold text-slate-800 dark:text-white">Dampak Jurnal Akuntansi Double-Entry:</p>
+                <p>• Kas & Bank (1001) [Debit] + {formatIDR(modalForm.nominal || 0)}</p>
+                <p>• Modal Disetor Pemilik (3001) [Kredit] + {formatIDR(modalForm.nominal || 0)}</p>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 rounded-xl"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all"
                 >
-                  Simpan Jurnal
+                  Simpan Setoran Modal
                 </button>
               </div>
             </form>
