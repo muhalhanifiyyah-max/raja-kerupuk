@@ -149,6 +149,26 @@ export default function App() {
   const [editTransactionForm, setEditTransactionForm] = useState({ id: null, nomor_bukti: '', tanggal: '', referensi: '', keterangan: '', tipe_transaksi: '', total_nominal: 0 });
   const [selectedTransactionToDelete, setSelectedTransactionToDelete] = useState(null);
 
+  // Helper hak akses menu navigasi
+  const hasMenu = (menuKey) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'pedagang') {
+      return menuKey === 'pedagang_portal';
+    }
+    // Khusus pengguna mamat rahmat dengan 4 menu terfokus:
+    // 1. Dashboard, 2. Laporan Keuangan, 3. Cetak Laporan, 4. Super Admin Pabrik
+    if (currentUser.username === 'mamat_rahmat' || currentUser.username === 'mamat') {
+      return ['dashboard', 'finance', 'reports', 'factories'].includes(menuKey);
+    }
+    if (currentUser.role === 'super_admin') {
+      return ['dashboard', 'sales', 'checkpoints', 'inventory', 'banking', 'purchases', 'finance', 'reports', 'factories'].includes(menuKey);
+    }
+    if (currentUser.role === 'admin_pabrik') {
+      return ['dashboard', 'sales', 'checkpoints', 'inventory', 'banking', 'finance', 'reports'].includes(menuKey);
+    }
+    return false;
+  };
+
   // Check auth session
   const checkAuth = async () => {
     try {
@@ -475,13 +495,20 @@ export default function App() {
     }
   }, [selectedPabrikId, activeTab]);
 
-  // Role guarding: Admin Pabrik hanya boleh akses operasional pabrik bersangkutan
+  // Role guarding & hak akses menu
   useEffect(() => {
-    if (currentUser?.role === 'admin_pabrik') {
+    if (!currentUser) return;
+    if (currentUser.username === 'mamat_rahmat' || currentUser.username === 'mamat') {
+      const allowedTabs = ['dashboard', 'finance', 'reports', 'factories'];
+      if (!allowedTabs.includes(activeTab)) {
+        setActiveTab('dashboard');
+        showToast('Akses dibatasi. Anda dialihkan ke Dashboard.', 'error');
+      }
+    } else if (currentUser.role === 'admin_pabrik') {
       if (currentUser.pabrik_id && String(selectedPabrikId) !== String(currentUser.pabrik_id)) {
         setSelectedPabrikId(String(currentUser.pabrik_id));
       }
-      const forbiddenTabs = ['purchases', 'finance', 'reports', 'factories'];
+      const forbiddenTabs = ['purchases', 'factories'];
       if (forbiddenTabs.includes(activeTab)) {
         setActiveTab('dashboard');
         showToast('Akses dibatasi. Anda dialihkan ke Dashboard Operasional Pabrik.', 'error');
@@ -1164,63 +1191,73 @@ export default function App() {
               </>
             ) : (
               <>
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'dashboard'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span>Dashboard</span>
-                </button>
+                {hasMenu('dashboard') && (
+                  <button
+                    onClick={() => setActiveTab('dashboard')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'dashboard'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => setActiveTab('sales')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'sales'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Distribusi & Piutang</span>
-                </button>
+                {hasMenu('sales') && (
+                  <button
+                    onClick={() => setActiveTab('sales')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'sales'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Distribusi & Piutang</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => setActiveTab('checkpoints')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'checkpoints'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                  <span>Check-Point</span>
-                </button>
+                {hasMenu('checkpoints') && (
+                  <button
+                    onClick={() => setActiveTab('checkpoints')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'checkpoints'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <MapPin className="w-4 h-4 text-emerald-500" />
+                    <span>Check-Point</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => setActiveTab('inventory')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'inventory'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <Boxes className="w-4 h-4" />
-                  <span>Persediaan Stok</span>
-                </button>
+                {hasMenu('inventory') && (
+                  <button
+                    onClick={() => setActiveTab('inventory')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'inventory'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <Boxes className="w-4 h-4" />
+                    <span>Persediaan Stok</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={() => setActiveTab('banking')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'banking'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <Landmark className="w-4 h-4" />
-                  <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
-                </button>
+                {hasMenu('banking') && (
+                  <button
+                    onClick={() => setActiveTab('banking')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'banking'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <Landmark className="w-4 h-4" />
+                    <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
+                  </button>
+                )}
 
                 {/* Menu Peralatan (Super Admin) */}
-                {currentUser?.role === 'super_admin' && (
+                {hasMenu('purchases') && (
                   <button
                     onClick={() => setActiveTab('purchases')}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
@@ -1233,35 +1270,36 @@ export default function App() {
                   </button>
                 )}
 
-                {/* Menu Laporan Keuangan & Cetak Laporan (Super Admin & Admin Pabrik) */}
-                {['super_admin', 'admin_pabrik'].includes(currentUser?.role) && (
-                  <>
-                    <button
-                      onClick={() => setActiveTab('finance')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
-                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                        }`}
-                    >
-                      <Receipt className="w-4 h-4" />
-                      <span>Laporan Keuangan</span>
-                    </button>
+                {/* Menu Laporan Keuangan */}
+                {hasMenu('finance') && (
+                  <button
+                    onClick={() => setActiveTab('finance')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <Receipt className="w-4 h-4" />
+                    <span>Laporan Keuangan</span>
+                  </button>
+                )}
 
-                    <button
-                      onClick={() => setActiveTab('reports')}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'reports'
-                        ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                        }`}
-                    >
-                      <Printer className="w-4 h-4" />
-                      <span>Cetak Laporan</span>
-                    </button>
-                  </>
+                {/* Menu Cetak Laporan */}
+                {hasMenu('reports') && (
+                  <button
+                    onClick={() => setActiveTab('reports')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'reports'
+                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                      }`}
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak Laporan</span>
+                  </button>
                 )}
 
                 {/* Menu Super Admin Pabrik */}
-                {currentUser?.role === 'super_admin' && (
+                {hasMenu('factories') && (
                   <button
                     onClick={() => {
                       setActiveTab('factories');
@@ -2041,13 +2079,15 @@ export default function App() {
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${checkpointsLoading ? 'animate-spin' : ''}`} />
                     </button>
-                    <button
-                      onClick={() => setActiveTab('checkpoints')}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 transition-all active:scale-95"
-                    >
-                      <span>Semua Check-Point</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
+                    {hasMenu('checkpoints') && (
+                      <button
+                        onClick={() => setActiveTab('checkpoints')}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 transition-all active:scale-95"
+                      >
+                        <span>Semua Check-Point</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -3062,13 +3102,15 @@ export default function App() {
                       <span className="text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full">
                         Saldo: {formatIDR(metrics.kas)}
                       </span>
-                      <button
-                        onClick={() => setActiveTab('banking')}
-                        className="px-3 py-1.5 bg-[#191a23] dark:bg-emerald-600 hover:bg-black text-white text-xs font-semibold rounded-full shadow-sm transition-all flex items-center gap-1.5"
-                      >
-                        <Landmark className="w-3.5 h-3.5" />
-                        <span>Buku Kas & Setoran</span>
-                      </button>
+                      {hasMenu('banking') && (
+                        <button
+                          onClick={() => setActiveTab('banking')}
+                          className="px-3 py-1.5 bg-[#191a23] dark:bg-emerald-600 hover:bg-black text-white text-xs font-semibold rounded-full shadow-sm transition-all flex items-center gap-1.5"
+                        >
+                          <Landmark className="w-3.5 h-3.5" />
+                          <span>Buku Kas & Setoran</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 

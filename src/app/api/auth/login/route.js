@@ -15,6 +15,7 @@ export async function POST(request) {
     }
 
     const cleanIdentifier = identifier.trim().toLowerCase();
+    const normalizedIdentifier = cleanIdentifier.replace(/\s+/g, '_');
 
     // Query user by username or email with pabrik & pedagang details
     const user = await queryOne(`
@@ -33,8 +34,8 @@ export async function POST(request) {
       FROM tabel_pengguna u
       LEFT JOIN tabel_pabrik p ON u.pabrik_id = p.id
       LEFT JOIN tabel_pedagang ped ON u.pedagang_id = ped.id
-      WHERE LOWER(u.username) = ? OR LOWER(u.email) = ?
-    `, [cleanIdentifier, cleanIdentifier]);
+      WHERE LOWER(u.username) = ? OR LOWER(u.username) = ? OR LOWER(u.email) = ?
+    `, [cleanIdentifier, normalizedIdentifier, cleanIdentifier]);
 
     if (!user) {
       return NextResponse.json(
