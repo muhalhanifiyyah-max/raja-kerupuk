@@ -193,7 +193,7 @@ export async function POST(request) {
     if (!pedagang_id || !produk_id || !qty || Number(qty) <= 0) {
       return NextResponse.json({
         success: false,
-        error: 'Data wajib belum lengkap (Pedagang, Produk, dan Qty drop harus diisi).'
+        error: 'Data wajib belum lengkap (Warung, Produk, dan Qty drop harus diisi).'
       }, { status: 400 });
     }
 
@@ -201,10 +201,10 @@ export async function POST(request) {
     const produkIdNum = Number(produk_id);
     const qtyNum = Number(qty);
 
-    // Ambil info pedagang untuk pabrik_id
+    // Ambil info warung untuk pabrik_id
     const pedagang = await queryOne('SELECT * FROM tabel_pedagang WHERE id = ?', [pedagangIdNum]);
     if (!pedagang) {
-      return NextResponse.json({ success: false, error: 'Pedagang tidak ditemukan' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Warung tidak ditemukan' }, { status: 404 });
     }
 
     const pabrikIdNum = Number(pabrik_id || pedagang.pabrik_id);

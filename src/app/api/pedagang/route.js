@@ -28,7 +28,7 @@ export async function POST(request) {
     const { pabrik_id, nama_pedagang, no_telepon, alamat, limit_piutang } = body;
 
     if (!pabrik_id || !nama_pedagang) {
-      return NextResponse.json({ success: false, error: 'Pabrik dan Nama Pedagang harus diisi' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Pabrik dan Nama Warung harus diisi' }, { status: 400 });
     }
 
     const inserted = await query(`

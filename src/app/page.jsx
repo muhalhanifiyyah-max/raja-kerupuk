@@ -700,7 +700,7 @@ export default function App() {
   // Generic Submit Transaction
   const handleTransactionSubmit = async (endpoint, payload, successMsg) => {
     try {
-      const targetPabrikId = payload.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : (factories[0]?.id || 1));
+      const targetPabrikId = payload.pabrik_id || (currentUser?.role === 'admin_pabrik' ? currentUser.pabrik_id : (selectedPabrikId !== 'all' ? selectedPabrikId : (factories[0]?.id || 1)));
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -925,7 +925,7 @@ export default function App() {
     csv += "=== I. NERACA SALDO (BALANCE SHEET) ===\r\n";
     csv += "Komponen Akun,Kode Akun,Nominal (IDR)\r\n";
     csv += `Kas & Bank,1001,${metrics.kas}\r\n`;
-    csv += `Piutang Dagang (Pedagang),1002,${metrics.piutang}\r\n`;
+    csv += `Piutang Dagang (Warung),1002,${metrics.piutang}\r\n`;
     csv += `Persediaan Barang Dagang,1003,${metrics.persediaan}\r\n`;
     csv += `Subtotal Aset Lancar,,${totalAsetLancar}\r\n`;
     csv += `Peralatan & Mesin Pabrik,1501,${metrics.peralatan}\r\n`;
@@ -972,8 +972,8 @@ export default function App() {
     });
     csv += `Total,Semua Produk,,${totalPersediaanQty},,${totalPersediaanValuasi},,${totalPersediaanPotensiOmset},${totalPersediaanPotensiMargin}\r\n\r\n`;
 
-    csv += "=== V. LAPORAN KONTROL PIUTANG & MITRA PEDAGANG ===\r\n";
-    csv += "No,Nama Mitra Pedagang,Telepon,Alamat,Plafon Limit Kredit,Saldo Piutang Berjalan,Sisa Limit,Utilisasi (%),Status Piutang\r\n";
+    csv += "=== V. LAPORAN KONTROL PIUTANG & MITRA WARUNG ===\r\n";
+    csv += "No,Nama Mitra Warung,Telepon,Alamat,Plafon Limit Kredit,Saldo Piutang Berjalan,Sisa Limit,Utilisasi (%),Status Piutang\r\n";
     pedagangList.forEach((ped, idx) => {
       const limit = Number(ped.limit_piutang) || 0;
       const saldo = Number(ped.saldo_piutang) || 0;
@@ -981,7 +981,7 @@ export default function App() {
       const util = limit > 0 ? ((saldo / limit) * 100).toFixed(1) : 0;
       csv += `${idx + 1},"${ped.nama_pedagang}","${ped.no_telepon || ''}","${ped.alamat || ''}",${limit},${saldo},${sisa},${util}%,${ped.status_piutang || 'Lancar'}\r\n`;
     });
-    csv += `Total,Semua Pedagang,,,${totalLimitPiutang},${totalPiutangNominal},${Math.max(0, totalLimitPiutang - totalPiutangNominal)},${avgUtilisasiPiutang}%\r\n\r\n`;
+    csv += `Total,Semua Warung,,,${totalLimitPiutang},${totalPiutangNominal},${Math.max(0, totalLimitPiutang - totalPiutangNominal)},${avgUtilisasiPiutang}%\r\n\r\n`;
 
     csv += "=== VI. ANALISIS RASIO KEUANGAN ===\r\n";
     csv += "Rasio,Nilai,Status Evaluasi\r\n";
@@ -1357,13 +1357,25 @@ export default function App() {
               <span>Tambah Pabrik Baru</span>
             </button>
           ) : currentUser?.role === 'admin_pabrik' ? (
-            <button
-              onClick={() => setActiveModal('distribusi')}
-              className="w-full py-2.5 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Plus className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Catat Distribusi</span>
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => {
+                  setPedagangForm({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '5000000', pabrik_id: currentUser?.pabrik_id || '' });
+                  setActiveModal('tambah_pedagang');
+                }}
+                className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-3.5 h-3.5 text-white" />
+                <span>Tambah Warung</span>
+              </button>
+              <button
+                onClick={() => setActiveModal('distribusi')}
+                className="w-full py-2 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-[#1a1b24] dark:hover:bg-[#252836] text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Catat Distribusi</span>
+              </button>
+            </div>
           ) : null}
 
           {/* Theme Mode Toggle Pill */}
@@ -1401,7 +1413,7 @@ export default function App() {
                   {currentUser?.nama}
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">
-                  @{currentUser?.username} • {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Pedagang'}
+                  @{currentUser?.username} • {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Warung'}
                 </p>
               </div>
             </div>
@@ -1584,14 +1596,14 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 2. Piutang Pedagang */}
+                {/* 2. Piutang Warung */}
                 <div className="dashboard-card p-5 relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-500">
                         <div className="w-2 h-2 rounded-full bg-rose-500" />
                       </div>
-                      <span className="text-xs font-semibold text-slate-500">Piutang Pedagang</span>
+                      <span className="text-xs font-semibold text-slate-500">Piutang Warung</span>
                     </div>
                     <button
                       onClick={() => setActiveModal('setoran')}
@@ -1918,7 +1930,7 @@ export default function App() {
                               <Store className="w-4 h-4" />
                             </div>
                             <div>
-                              <div className="text-xs font-bold text-slate-800 dark:text-white">Mitra Pedagang Terdaftar</div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white">Mitra Warung Terdaftar</div>
                               <div className="text-[11px] text-slate-400">Pabrik {currentUser?.nama_pabrik || 'Depok'}</div>
                             </div>
                           </div>
@@ -1956,21 +1968,24 @@ export default function App() {
 
               </div>
 
-              {/* BOTTOM SECTION: MITRA PEDAGANG & KONTROL PIUTANG */}
+              {/* BOTTOM SECTION: MITRA WARUNG & KONTROL PIUTANG */}
               <div className="dashboard-card p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="font-bold text-base text-slate-900">Customer Contacts / Mitra Pedagang</h3>
-                    <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per pedagang</p>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">Customer Contacts / Mitra Warung</h3>
+                    <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per warung mitra</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {currentUser?.role === 'admin_pabrik' && (
+                    {['admin_pabrik', 'super_admin'].includes(currentUser?.role) && (
                       <button
-                        onClick={() => setActiveModal('tambah_pedagang')}
-                        className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-all flex items-center gap-1.5"
+                        onClick={() => {
+                          setPedagangForm({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '5000000', pabrik_id: currentUser?.pabrik_id || '' });
+                          setActiveModal('tambah_pedagang');
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all flex items-center gap-1.5 shadow-sm"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        Tambah Pedagang
+                        Tambah Warung
                       </button>
                     )}
                     <button className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center gap-1.5">
@@ -1984,7 +1999,7 @@ export default function App() {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        <th className="pb-3 pl-2">Nama Pedagang</th>
+                        <th className="pb-3 pl-2">Nama Warung</th>
                         <th className="pb-3">No. Telepon</th>
                         <th className="pb-3">Alamat / Wilayah</th>
                         <th className="pb-3">Sisa Piutang / Limit</th>
@@ -2014,7 +2029,7 @@ export default function App() {
                                 </div>
                                 <div>
                                   <p className="font-bold text-slate-900 leading-tight">{p.nama_pedagang}</p>
-                                  <p className="text-[11px] text-slate-400">ID: PED-{p.id}</p>
+                                  <p className="text-[11px] text-slate-400">ID: WRG-{p.id}</p>
                                 </div>
                               </div>
                             </td>
@@ -2174,7 +2189,7 @@ export default function App() {
                             </div>
 
                             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                              <span className="font-semibold text-slate-700 dark:text-slate-300">{cp.nama_pedagang || 'Pedagang'}</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{cp.nama_pedagang || 'Warung'}</span>
                               <span className="mx-1">&bull;</span>
                               <span>{cp.tanggal}</span>
                             </div>
@@ -2378,15 +2393,27 @@ export default function App() {
             <div className="space-y-6">
               {renderFactoryFilterBar(
                 'Distribusi & Piutang',
-                'Monitoring drop kerupuk ke pedagang keliling, saldo piutang, dan omset penjualan',
-                currentUser?.role === 'admin_pabrik' ? (
-                  <button
-                    onClick={() => setActiveModal('distribusi')}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Drop Barang ke Pedagang</span>
-                  </button>
+                'Monitoring drop kerupuk ke warung mitra, saldo piutang, dan omset penjualan',
+                ['admin_pabrik', 'super_admin'].includes(currentUser?.role) ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setPedagangForm({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '5000000', pabrik_id: currentUser?.pabrik_id || '' });
+                        setActiveModal('tambah_pedagang');
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full shadow-sm transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Warung</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveModal('distribusi')}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#191a23] dark:bg-white/10 hover:bg-black dark:hover:bg-white/20 text-white text-xs font-semibold rounded-full shadow-sm transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Drop Barang ke Warung</span>
+                    </button>
+                  </div>
                 ) : null
               )}
 
@@ -2855,7 +2882,7 @@ export default function App() {
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] dark:bg-white/10 text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                     >
                       <ArrowDownLeft className="w-3.5 h-3.5" />
-                      <span>Terima Setoran Pedagang</span>
+                      <span>Terima Setoran Warung</span>
                     </button>
                   )}
                 </div>
@@ -3105,7 +3132,7 @@ export default function App() {
                       onClick={() => setKasFilterTipe('SETORAN_PIUTANG')}
                       className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'SETORAN_PIUTANG' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                      Setoran Pedagang
+                      Setoran Warung
                     </button>
                   </div>
                 </div>
@@ -3172,7 +3199,7 @@ export default function App() {
                                   {j.tipe_transaksi?.includes('MODAL') ? 'Setoran Modal Pemilik' :
                                    j.tipe_transaksi === 'BELI_PERALATAN' ? 'Beli Mesin / Aset' :
                                    j.tipe_transaksi === 'BELI_PERSEDIAAN' ? 'Belanja Persediaan' :
-                                   j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'Setoran Piutang Pedagang' :
+                                   j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'Setoran Piutang Warung' :
                                    j.tipe_transaksi}
                                 </span>
                               </td>
@@ -3258,7 +3285,7 @@ export default function App() {
                             <span className="font-bold text-slate-900">{formatIDR(metrics.kas)}</span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-slate-50">
-                            <span className="text-slate-600">Piutang Dagang (Pedagang)</span>
+                            <span className="text-slate-600">Piutang Dagang (Warung)</span>
                             <span className="font-bold text-slate-900">{formatIDR(metrics.piutang)}</span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-slate-50">
@@ -3341,7 +3368,7 @@ export default function App() {
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Pendapatan Penjualan</h4>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between py-1 border-b border-slate-50">
-                            <span className="text-slate-600">Penjualan Kerupuk ke Pedagang</span>
+                            <span className="text-slate-600">Penjualan Kerupuk ke Warung</span>
                             <span className="font-bold text-slate-900">{formatIDR(metrics.penjualan)}</span>
                           </div>
                           <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded">
@@ -3538,7 +3565,7 @@ export default function App() {
                     { id: 'laba_rugi', label: '2. Laba Rugi' },
                     { id: 'kas_bank', label: '3. Kas & Perbankan' },
                     { id: 'persediaan', label: '4. Persediaan Barang' },
-                    { id: 'piutang', label: '5. Piutang Pedagang' },
+                    { id: 'piutang', label: '5. Piutang Warung' },
                     { id: 'aset', label: '6. Peralatan & Mesin' },
                     { id: 'analisa', label: '7. Analisa Finansial' }
                   ].map((tab) => (
@@ -3634,7 +3661,7 @@ export default function App() {
                       <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
                         <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Piutang Dagang</span>
                         <span className="text-sm font-bold text-rose-600 dark:text-rose-400 print:text-black block">{formatIDR(metrics.piutang)}</span>
-                        <span className="text-[10px] text-slate-500">{pedagangList.length} Mitra Pedagang</span>
+                        <span className="text-[10px] text-slate-500">{pedagangList.length} Mitra Warung</span>
                       </div>
                       <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
                         <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Persediaan Gudang</span>
@@ -3690,7 +3717,7 @@ export default function App() {
                               <td className="px-4 py-2 text-right font-medium text-slate-900 dark:text-slate-100 print:text-black">{formatIDR(metrics.kas)}</td>
                             </tr>
                             <tr className="border-b border-slate-100 dark:border-white/5">
-                              <td className="px-4 py-2 pl-6 text-slate-700 dark:text-slate-300 print:text-black">1002 - Piutang Dagang (Mitra Pedagang)</td>
+                              <td className="px-4 py-2 pl-6 text-slate-700 dark:text-slate-300 print:text-black">1002 - Piutang Dagang (Mitra Warung)</td>
                               <td className="px-4 py-2 text-right font-medium text-slate-900 dark:text-slate-100 print:text-black">{formatIDR(metrics.piutang)}</td>
                             </tr>
                             <tr className="border-b border-slate-100 dark:border-white/5">
@@ -4116,10 +4143,10 @@ export default function App() {
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          V. Laporan Pengawasan Piutang & Mitra Pedagang
+                          V. Laporan Pengawasan Piutang & Mitra Warung
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
-                          Monitoring Plafon Kredit, Saldo Tagihan Aktif, dan Status Risiko Pembayaran Pedagang
+                          Monitoring Plafon Kredit, Saldo Tagihan Aktif, dan Status Risiko Pembayaran Warung
                         </p>
                       </div>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/10 px-2.5 py-1 rounded">
@@ -4132,7 +4159,7 @@ export default function App() {
                         <thead>
                           <tr className="bg-slate-100 dark:bg-white/10 print:bg-slate-200 text-slate-800 dark:text-slate-200 print:text-black font-bold uppercase text-[11px]">
                             <th className="px-3 py-2 text-center w-10">No</th>
-                            <th className="px-3 py-2 text-left">Nama Mitra Pedagang / Warung</th>
+                            <th className="px-3 py-2 text-left">Nama Mitra Warung</th>
                             <th className="px-3 py-2 text-left">Lokasi / Pasar</th>
                             <th className="px-3 py-2 text-right">Plafon Limit Kredit</th>
                             <th className="px-3 py-2 text-right">Saldo Piutang Berjalan</th>
@@ -4349,7 +4376,7 @@ export default function App() {
                         </div>
                         <div>
                           <h4 className="font-bold text-slate-900 dark:text-white print:text-black text-[11px] uppercase tracking-wide">
-                            2. Manajemen Risiko Kredit Piutang Pedagang
+                            2. Manajemen Risiko Kredit Piutang Warung
                           </h4>
                           <p className="mt-0.5 text-slate-600 dark:text-slate-400 print:text-slate-800">
                             Total piutang dagang tercatat {formatIDR(metrics.piutang)} dengan utilisasi plafon kredit rata-rata {avgUtilisasiPiutang}%. Mayoritas mitra berada pada status Lancar. Disarankan penagihan rutin sebelum plafon kredit mencapai batas maksimal.
@@ -4593,7 +4620,7 @@ export default function App() {
                         </span>
                       </div>
                       <div className="bg-white p-3 rounded-2xl border border-slate-200/70 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Akun Pedagang</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Akun Warung</span>
                         <span className="text-lg font-extrabold text-blue-600">
                           {usersList.filter(u => u.role === 'pedagang').length}
                         </span>
@@ -4672,7 +4699,7 @@ export default function App() {
                                       : 'bg-blue-50 text-blue-700 border border-blue-200'
                                     }`}>
                                     {isSuper && <Shield className="w-3 h-3 text-amber-400" />}
-                                    {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Pedagang'}
+                                    {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Warung'}
                                   </span>
                                 </td>
                                 <td className="py-3.5 text-xs text-slate-600">
@@ -4756,7 +4783,7 @@ export default function App() {
                     <span>Monitoring Lapangan</span>
                   </div>
                   <h2 className="text-xl font-black text-white">
-                    Check-Point Drop Kerupuk Pedagang
+                    Check-Point Drop Kerupuk Warung
                   </h2>
                   <p className="text-xs text-slate-300">
                     Pemantauan titik drop kerupuk ke warung, verifikasi foto bukti fisik, dan koordinat GPS.
@@ -4956,7 +4983,7 @@ export default function App() {
                           {/* Detail Drop */}
                           <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 space-y-1.5 text-xs">
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Pedagang:</span>
+                              <span className="text-slate-400">Warung:</span>
                               <span className="font-bold text-slate-800 dark:text-slate-200">
                                 {cp.nama_pedagang}
                               </span>
@@ -5027,7 +5054,7 @@ export default function App() {
                   <MapPin className="w-12 h-12 mx-auto opacity-30 text-emerald-500" />
                   <h4 className="font-bold text-slate-700 dark:text-slate-200">Belum Ada Rekaman Check-Point</h4>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Pedagang dapat mencatat check-point drop kerupuk ke warung lengkap dengan foto dan titik koordinat GPS melalui aplikasi pedagang.
+                    Mencatat check-point drop kerupuk ke warung lengkap dengan foto dan titik koordinat GPS melalui aplikasi warung / lapangan.
                   </p>
                 </div>
               )}
@@ -5042,7 +5069,7 @@ export default function App() {
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold mb-1">
                     <Store className="w-3 h-3" />
-                    <span>Aplikasi Android Pedagang</span>
+                    <span>Aplikasi Android Lapangan / Warung</span>
                   </div>
                   <h2 className="text-lg font-black text-white">
                     {currentUser?.nama_pedagang || currentUser?.nama}
@@ -5980,14 +6007,14 @@ export default function App() {
               handleTransactionSubmit('/api/transaksi/distribusi', distribusiForm, 'Distribusi barang berhasil dicatat!');
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Pedagang Penerima</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Warung Penerima</label>
                 <select
                   required
                   value={distribusiForm.pedagang_id}
                   onChange={(e) => setDistribusiForm({ ...distribusiForm, pedagang_id: e.target.value })}
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
                 >
-                  <option value="">-- Pilih Pedagang --</option>
+                  <option value="">-- Pilih Warung --</option>
                   {(dashboardData?.pedagangList || []).map((ped) => (
                     <option key={ped.id} value={String(ped.id)}>
                       {ped.nama_pedagang} (Piutang: {formatShort(ped.saldo_piutang)} / Limit: {formatShort(ped.limit_piutang)})
@@ -6085,17 +6112,17 @@ export default function App() {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleTransactionSubmit('/api/transaksi/setoran', setoranForm, 'Penerimaan setoran pedagang berhasil dicatat!');
+              handleTransactionSubmit('/api/transaksi/setoran', setoranForm, 'Penerimaan setoran warung berhasil dicatat!');
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Pilih Pedagang</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Warung</label>
                 <select
                   required
                   value={setoranForm.pedagang_id}
                   onChange={(e) => setSetoranForm({ ...setoranForm, pedagang_id: e.target.value })}
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
                 >
-                  <option value="">-- Pilih Pedagang --</option>
+                  <option value="">-- Pilih Warung --</option>
                   {(dashboardData?.pedagangList || []).map((ped) => (
                     <option key={ped.id} value={String(ped.id)}>
                       {ped.nama_pedagang} (Sisa Utang: {formatIDR(ped.saldo_piutang)})
@@ -6147,63 +6174,93 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 6: TAMBAH PEDAGANG BARU */}
+      {/* MODAL 6: TAMBAH WARUNG BARU */}
       {activeModal === 'tambah_pedagang' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-900">Tambah Pedagang Baru</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Tambah Warung Baru</h3>
+                <p className="text-xs text-slate-400">Pendaftaran mitra warung untuk drop kerupuk dan kontrol piutang</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleTransactionSubmit('/api/pedagang', pedagangForm, 'Pedagang baru berhasil ditambahkan!');
+              const targetPabrikId = currentUser?.role === 'admin_pabrik'
+                ? (currentUser.pabrik_id || 1)
+                : (pedagangForm.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : (factories[0]?.id || 1)));
+              handleTransactionSubmit('/api/pedagang', { ...pedagangForm, pabrik_id: targetPabrikId }, 'Warung baru berhasil ditambahkan!');
             }} className="space-y-4">
+              {currentUser?.role === 'super_admin' && factories.length > 0 && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pabrik</label>
+                  <select
+                    value={pedagangForm.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : factories[0]?.id)}
+                    onChange={(e) => setPedagangForm({ ...pedagangForm, pabrik_id: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
+                  >
+                    {factories.map((f) => (
+                      <option key={f.id} value={f.id}>{f.nama_pabrik}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {currentUser?.role === 'admin_pabrik' && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-300">Pabrik Terkait:</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                    {currentUser?.nama_pabrik || factories.find(f => String(f.id) === String(currentUser?.pabrik_id))?.nama_pabrik || `Pabrik #${currentUser?.pabrik_id || 1}`}
+                  </span>
+                </div>
+              )}
+
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Pedagang</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Warung / Kios</label>
                 <input
                   type="text"
                   required
-                  placeholder="Cak Nanang Grosir"
+                  placeholder="Contoh: Warung Bu Sri / Toko Berkah"
                   value={pedagangForm.nama_pedagang}
                   onChange={(e) => setPedagangForm({ ...pedagangForm, nama_pedagang: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Nomor Telepon</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nomor Telepon / WhatsApp</label>
                 <input
                   type="text"
                   placeholder="0812-3456-7890"
                   value={pedagangForm.no_telepon}
                   onChange={(e) => setPedagangForm({ ...pedagangForm, no_telepon: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Alamat / Lokasi Kios</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Alamat / Lokasi Warung</label>
                 <input
                   type="text"
-                  placeholder="Pasar Waru Blok B"
+                  placeholder="Pasar Waru Blok B / Jl. Margonda No. 45"
                   value={pedagangForm.alamat}
                   onChange={(e) => setPedagangForm({ ...pedagangForm, alamat: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Limit Piutang (Rp)</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Limit Piutang / Plafon Bon (Rp)</label>
                 <input
                   type="number"
-                  placeholder="20000000"
+                  placeholder="5000000"
                   value={pedagangForm.limit_piutang}
                   onChange={(e) => setPedagangForm({ ...pedagangForm, limit_piutang: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono focus:outline-none"
                 />
               </div>
 
@@ -6211,15 +6268,15 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] dark:bg-emerald-600 text-white rounded-xl hover:bg-black dark:hover:bg-emerald-500 shadow-sm transition-all"
                 >
-                  Simpan Pedagang
+                  Simpan Warung
                 </button>
               </div>
             </form>
@@ -6420,12 +6477,12 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 9: DETAIL KARTU PIUTANG PEDAGANG */}
+      {/* MODAL 9: DETAIL KARTU PIUTANG WARUNG */}
       {activeModal === 'kartu_piutang' && selectedPedagang && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-lg text-slate-900">Kartu Piutang: {selectedPedagang.nama_pedagang}</h3>
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b dark:border-white/10 pb-3">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Kartu Piutang Warung: {selectedPedagang.nama_pedagang}</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -6675,7 +6732,7 @@ export default function App() {
                   >
                     <option value="super_admin">Super Admin (Owner)</option>
                     <option value="admin_pabrik">Admin Pabrik</option>
-                    <option value="pedagang">Akun Pedagang</option>
+                    <option value="pedagang">Akun Warung</option>
                   </select>
                 </div>
                 <div>
