@@ -59,6 +59,9 @@ export async function POST(request) {
     if (!isValid) {
       const defaultMatch = 
         (user.username === 'superadmin' && password === 'admin123') ||
+        (user.username === 'admin_depok' && (password === 'depok123' || password === 'admin123')) ||
+        (user.username === 'mamat_rahmat' && password === 'ssdd223344') ||
+        (user.username === 'pedagang_depok' && (password === 'password123' || password === 'pedagang123')) ||
         (user.username === 'admin_berkah' && password === 'berkah123') ||
         (user.username === 'admin_melati' && password === 'melati123') ||
         (user.username === 'admin_solo' && password === 'solo123') ||

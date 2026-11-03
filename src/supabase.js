@@ -361,8 +361,17 @@ async function fallbackPostgrest(sql, params = []) {
       const setClause = tableMatch[2].trim();
       const whereClause = tableMatch[3].trim().replace(/;$/, '');
 
-      const idMatch = whereClause.match(/id\s*=\s*(\d+|\?)/i);
-      const targetId = idMatch ? (idMatch[1] === '?' ? params[params.length - 1] : idMatch[1]) : null;
+      const colMatch = whereClause.match(/([a-zA-Z0-9_]+)\s*=\s*(\d+|\?|'[^']*')/i);
+      let whereFilter = '';
+      let targetId = null;
+      if (colMatch) {
+        const col = colMatch[1];
+        let val = colMatch[2] === '?' ? params[params.length - 1] : colMatch[2].replace(/^'|'$/g, '');
+        whereFilter = `${col}=eq.${encodeURIComponent(val)}`;
+        if (col.toLowerCase() === 'id') {
+          targetId = val;
+        }
+      }
 
       const updates = {};
       // Parse setClause respecting quotes (agar JSON string yang mengandung koma tidak terpotong)
@@ -421,7 +430,9 @@ async function fallbackPostgrest(sql, params = []) {
       }
 
       let patchEndpoint = table;
-      if (targetId) {
+      if (whereFilter) {
+        patchEndpoint += `?${whereFilter}`;
+      } else if (targetId) {
         patchEndpoint += `?id=eq.${targetId}`;
       }
 
