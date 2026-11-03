@@ -142,6 +142,8 @@ export default function App() {
   const [setoranForm, setSetoranForm] = useState({ pedagang_id: '', nominal: '', tanggal: '', keterangan: '' });
   const [pedagangForm, setPedagangForm] = useState({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '' });
   const [produkForm, setProdukForm] = useState({ nama_produk: '', kategori: 'Kerupuk', satuan: 'Bal', harga_beli: '', harga_jual: '', stok: 0 });
+  const [editProdukForm, setEditProdukForm] = useState({ id: null, nama_produk: '', kategori: 'Kerupuk', satuan: 'Bal', harga_beli: '', harga_jual: '', stok: 0 });
+  const [selectedProdukToDelete, setSelectedProdukToDelete] = useState(null);
   const [pabrikForm, setPabrikForm] = useState({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
   const [editPabrikForm, setEditPabrikForm] = useState({ id: null, nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '' });
   const [userForm, setUserForm] = useState({ id: null, nama: '', email: '', username: '', password: '', role: 'admin_pabrik', pabrik_id: '1', pedagang_id: '', status: 'aktif' });
@@ -671,6 +673,68 @@ export default function App() {
         await loadDashboard(selectedPabrikId);
       } else {
         showToast(data.error || 'Gagal menghapus transaksi', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Product & Inventory CRUD Handlers (Admin Pabrik & Super Admin)
+  const openEditProduk = (prod) => {
+    setEditProdukForm({
+      id: prod.id,
+      nama_produk: prod.nama_produk || '',
+      kategori: prod.kategori || 'Kerupuk',
+      satuan: prod.satuan || 'Bal',
+      harga_beli: prod.harga_beli || '',
+      harga_jual: prod.harga_jual || '',
+      stok: prod.stok !== undefined ? prod.stok : 0
+    });
+    setActiveModal('edit_produk');
+  };
+
+  const handleUpdateProduk = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/produk/${editProdukForm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editProdukForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Produk "${editProdukForm.nama_produk}" & stok gudang berhasil diperbarui!`);
+        setActiveModal(null);
+        await loadDashboard(selectedPabrikId);
+        await loadCheckpoints(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Gagal update produk', 'error');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const openDeleteProduk = (prod) => {
+    setSelectedProdukToDelete(prod);
+    setActiveModal('delete_produk_confirm');
+  };
+
+  const handleDeleteProduk = async () => {
+    if (!selectedProdukToDelete) return;
+    try {
+      const res = await fetch(`/api/produk/${selectedProdukToDelete.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Produk "${selectedProdukToDelete.nama_produk}" berhasil dihapus dari persediaan!`);
+        setActiveModal(null);
+        setSelectedProdukToDelete(null);
+        await loadDashboard(selectedPabrikId);
+        await loadCheckpoints(selectedPabrikId);
+      } else {
+        showToast(data.error || 'Gagal menghapus produk', 'error');
       }
     } catch (err) {
       showToast(err.message, 'error');
@@ -2559,7 +2623,7 @@ export default function App() {
               {renderFactoryFilterBar(
                 'Persediaan Barang & Stok Gudang',
                 'Katalog produk kerupuk, nilai aset gudang, dan pembelian persediaan',
-                currentUser?.role === 'admin_pabrik' ? (
+                ['admin_pabrik', 'super_admin'].includes(currentUser?.role) ? (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setActiveModal('beli_persediaan')}
@@ -2570,7 +2634,7 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => setActiveModal('tambah_produk')}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] dark:bg-white/10 text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                     >
                       <PackagePlus className="w-3.5 h-3.5" />
                       <span>Tambah Produk Baru</span>
@@ -2589,42 +2653,65 @@ export default function App() {
                   const margin = hargaJual > 0 ? Math.round(((hargaJual - hargaBeli) / hargaJual) * 100) : 0;
 
                   return (
-                    <div key={prod.id} className="dashboard-card p-5 relative overflow-hidden">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                            {prod.kategori || 'Kerupuk'}
-                          </span>
-                          {prod.nama_pabrik && (
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-md">
-                              {prod.nama_pabrik}
+                    <div key={prod.id} className="dashboard-card p-5 relative overflow-hidden flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full">
+                              {prod.kategori || 'Kerupuk'}
                             </span>
-                          )}
+                            {prod.nama_pabrik && (
+                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-md">
+                                {prod.nama_pabrik}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${stok > 50 ? 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300' : 'bg-rose-50 text-rose-600'
+                            }`}>
+                            Stok: {stok} {prod.satuan}
+                          </span>
                         </div>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stok > 50 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-600'
-                          }`}>
-                          Stok: {stok} {prod.satuan}
-                        </span>
+                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white mb-1">{prod.nama_produk}</h4>
+                        <div className="space-y-1.5 my-3 text-xs border-y border-slate-100 dark:border-white/10 py-3">
+                          <div className="flex justify-between text-slate-500">
+                            <span>Harga Beli (HPP):</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{formatIDR(hargaBeli)} / {prod.satuan}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-500">
+                            <span>Harga Jual:</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatIDR(hargaJual)} / {prod.satuan}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-500">
+                            <span>Estimasi Margin:</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{margin}%</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1">
+                          <span className="text-slate-400">Total Nilai Stok:</span>
+                          <span className="font-extrabold text-slate-900 dark:text-white">{formatIDR(nilaiAsetPersediaan)}</span>
+                        </div>
                       </div>
-                      <h4 className="font-extrabold text-base text-slate-900 mb-1">{prod.nama_produk}</h4>
-                      <div className="space-y-1.5 my-3 text-xs border-y border-slate-100 py-3">
-                        <div className="flex justify-between text-slate-500">
-                          <span>Harga Beli (HPP):</span>
-                          <span className="font-semibold text-slate-800">{formatIDR(hargaBeli)} / {prod.satuan}</span>
+
+                      {['admin_pabrik', 'super_admin'].includes(currentUser?.role) && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/10 mt-3">
+                          <button
+                            onClick={() => openEditProduk(prod)}
+                            className="flex-1 py-2 px-2 text-xs font-semibold bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                            title="Edit Data Produk & Stok Gudang"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+                            <span>Edit & Stok</span>
+                          </button>
+                          <button
+                            onClick={() => openDeleteProduk(prod)}
+                            className="py-2 px-3 text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                            title="Hapus Produk dari Persediaan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus</span>
+                          </button>
                         </div>
-                        <div className="flex justify-between text-slate-500">
-                          <span>Harga Jual:</span>
-                          <span className="font-bold text-emerald-600">{formatIDR(hargaJual)} / {prod.satuan}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-500">
-                          <span>Estimasi Margin:</span>
-                          <span className="font-bold text-slate-800">{margin}%</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs pt-1">
-                        <span className="text-slate-400">Total Nilai Stok:</span>
-                        <span className="font-extrabold text-slate-900">{formatIDR(nilaiAsetPersediaan)}</span>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2632,11 +2719,11 @@ export default function App() {
 
               {/* Jurnal Transaksi Pembelian Persediaan */}
               <div className="dashboard-card p-6">
-                <h3 className="font-bold text-sm text-slate-900 mb-4">Riwayat Pembelian Persediaan (Stok)</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-4">Riwayat Pembelian Persediaan (Stok)</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <tr className="border-b border-slate-100 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <th className="pb-3">Tanggal & No. Bukti</th>
                         <th className="pb-3">Pabrik</th>
                         <th className="pb-3">Nama Produk / Item</th>
@@ -2645,7 +2732,7 @@ export default function App() {
                         <th className="pb-3 text-right pr-2">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                       {(!dashboardData?.recentJournals || dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERSEDIAAN').length === 0) ? (
                         <tr>
                           <td colSpan="6" className="py-8 text-center text-slate-400 text-xs">
@@ -2654,9 +2741,9 @@ export default function App() {
                         </tr>
                       ) : (
                         dashboardData.recentJournals.filter(j => j.tipe_transaksi === 'BELI_PERSEDIAAN').map((j) => (
-                          <tr key={j.id} className="hover:bg-slate-50 transition-colors">
+                          <tr key={j.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                             <td className="py-3">
-                              <span className="font-bold text-slate-900 text-xs block">{j.nomor_bukti}</span>
+                              <span className="font-bold text-slate-900 dark:text-white text-xs block">{j.nomor_bukti}</span>
                               <span className="text-[11px] text-slate-400">{j.tanggal}</span>
                             </td>
                             <td className="py-3">
@@ -2664,28 +2751,28 @@ export default function App() {
                                 {j.nama_pabrik || 'Pabrik'}
                               </span>
                             </td>
-                            <td className="py-3 font-semibold text-slate-800 text-xs">
+                            <td className="py-3 font-semibold text-slate-800 dark:text-slate-200 text-xs">
                               {j.referensi || '-'}
                             </td>
-                            <td className="py-3 text-xs text-slate-600">
+                            <td className="py-3 text-xs text-slate-600 dark:text-slate-400">
                               {j.keterangan}
                             </td>
-                            <td className="py-3 text-right font-extrabold text-slate-900 text-sm">
+                            <td className="py-3 text-right font-extrabold text-slate-900 dark:text-white text-sm">
                               {formatIDR(j.total_nominal)}
                             </td>
                             <td className="py-3 text-right pr-2">
-                              {currentUser?.role === 'super_admin' ? (
+                              {['admin_pabrik', 'super_admin'].includes(currentUser?.role) ? (
                                 <div className="flex items-center justify-end gap-1">
                                   <button
                                     onClick={() => openEditTransaction(j)}
-                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                                     title="Edit Transaksi"
                                   >
                                     <Edit3 className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => openDeleteTransaction(j)}
-                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                     title="Hapus Transaksi"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -6287,10 +6374,13 @@ export default function App() {
       {/* MODAL 7: TAMBAH PRODUK BARU */}
       {activeModal === 'tambah_produk' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-900">Tambah Produk Baru</h3>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Tambah Produk Baru</h3>
+                <p className="text-xs text-slate-400">Tambahkan varian kerupuk baru ke katalog pabrik</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -6300,59 +6390,59 @@ export default function App() {
               handleTransactionSubmit('/api/produk', produkForm, 'Produk baru berhasil ditambahkan!');
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Nama Produk</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Produk</label>
                 <input
                   type="text"
                   required
                   placeholder="Kerupuk Ikan Tenggiri"
                   value={produkForm.nama_produk}
                   onChange={(e) => setProdukForm({ ...produkForm, nama_produk: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Kategori</label>
                   <input
                     type="text"
                     value={produkForm.kategori}
                     onChange={(e) => setProdukForm({ ...produkForm, kategori: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Satuan</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Satuan</label>
                   <input
                     type="text"
                     value={produkForm.satuan}
                     onChange={(e) => setProdukForm({ ...produkForm, satuan: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Beli HPP (Rp)</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Harga Beli HPP (Rp)</label>
                   <input
                     type="number"
                     required
                     placeholder="90000"
                     value={produkForm.harga_beli}
                     onChange={(e) => setProdukForm({ ...produkForm, harga_beli: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Harga Jual (Rp)</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Harga Jual (Rp)</label>
                   <input
                     type="number"
                     required
                     placeholder="130000"
                     value={produkForm.harga_jual}
                     onChange={(e) => setProdukForm({ ...produkForm, harga_jual: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl text-sm font-mono focus:outline-none"
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono focus:outline-none"
                   />
                 </div>
               </div>
@@ -6361,18 +6451,166 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] text-white rounded-xl hover:bg-black shadow-sm"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] dark:bg-emerald-600 text-white rounded-xl hover:bg-black dark:hover:bg-emerald-500 shadow-sm transition-all"
                 >
                   Simpan Produk
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT PRODUK & STOK GUDANG */}
+      {activeModal === 'edit_produk' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Edit Produk & Stok Gudang</h3>
+                <p className="text-xs text-slate-400">Perbarui rincian harga dan jumlah stok fisik barang</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProduk} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Produk</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Kerupuk Ikan Tenggiri"
+                  value={editProdukForm.nama_produk}
+                  onChange={(e) => setEditProdukForm({ ...editProdukForm, nama_produk: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Kategori</label>
+                  <input
+                    type="text"
+                    value={editProdukForm.kategori}
+                    onChange={(e) => setEditProdukForm({ ...editProdukForm, kategori: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Satuan</label>
+                  <input
+                    type="text"
+                    value={editProdukForm.satuan}
+                    onChange={(e) => setEditProdukForm({ ...editProdukForm, satuan: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Harga Beli HPP (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="90000"
+                    value={editProdukForm.harga_beli}
+                    onChange={(e) => setEditProdukForm({ ...editProdukForm, harga_beli: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Harga Jual (Rp)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="130000"
+                    value={editProdukForm.harga_jual}
+                    onChange={(e) => setEditProdukForm({ ...editProdukForm, harga_jual: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-1">
+                <label className="text-xs font-bold text-amber-900 dark:text-amber-200 block">
+                  Penyesuaian Stok Fisik Gudang ({editProdukForm.satuan || 'Bal'})
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={editProdukForm.stok}
+                  onChange={(e) => setEditProdukForm({ ...editProdukForm, stok: Number(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-amber-300 dark:border-amber-700 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm font-mono font-bold focus:outline-none"
+                />
+                <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                  Ubah angka ini untuk menyesuaikan stok fisik terkini di gudang pabrik.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI HAPUS PRODUK */}
+      {activeModal === 'delete_produk_confirm' && selectedProdukToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">Hapus Produk dari Persediaan?</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Anda akan menghapus produk <strong className="text-slate-800 dark:text-white">"{selectedProdukToDelete.nama_produk}"</strong> (Stok: {selectedProdukToDelete.stok} {selectedProdukToDelete.satuan}). Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  setSelectedProdukToDelete(null);
+                }}
+                className="flex-1 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteProduk}
+                className="flex-1 py-2.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm transition-all"
+              >
+                Ya, Hapus Produk
+              </button>
+            </div>
           </div>
         </div>
       )}
