@@ -377,6 +377,7 @@ async function fallbackPostgrest(sql, params = []) {
       const whereClause = tableMatch[3].trim().replace(/;$/, '');
 
       const colMatch = whereClause.match(/([a-zA-Z0-9_]+)\s*=\s*(\d+|\?|'[^']*')/i);
+      const isNullMatch = whereClause.match(/([a-zA-Z0-9_]+)\s+IS\s+(NOT\s+)?NULL/i);
       let whereFilter = '';
       let targetId = null;
       if (colMatch) {
@@ -386,6 +387,10 @@ async function fallbackPostgrest(sql, params = []) {
         if (col.toLowerCase() === 'id') {
           targetId = val;
         }
+      } else if (isNullMatch) {
+        const col = isNullMatch[1];
+        const isNot = isNullMatch[2] ? 'not.' : '';
+        whereFilter = `${col}=${isNot}is.null`;
       }
 
       const updates = {};
@@ -461,16 +466,33 @@ async function fallbackPostgrest(sql, params = []) {
 
   // 4. DELETE query
   if (upper.startsWith('DELETE FROM')) {
-    const tableMatch = trimmed.match(/DELETE\s+FROM\s+([a-zA-Z0-9_]+)\s+WHERE\s+(.+)$/is);
+    const tableMatch = trimmed.match(/DELETE\s+FROM\s+([a-zA-Z0-9_]+)(?:\s+WHERE\s+(.+))?$/is);
     if (tableMatch) {
       const table = tableMatch[1].trim();
-      const whereClause = tableMatch[2].trim().replace(/;$/, '');
+      const whereClause = tableMatch[2] ? tableMatch[2].trim().replace(/;$/, '') : '';
+
+      if (!whereClause) {
+        return await postgrestRequest(`${table}?id=gt.0`, {
+          method: 'DELETE',
+          headers: { 'Prefer': 'return=representation' }
+        });
+      }
 
       const colMatch = whereClause.match(/([a-zA-Z0-9_]+)\s*=\s*(\d+|\?|'[^']*')/i);
       if (colMatch) {
         const col = colMatch[1];
         let val = colMatch[2] === '?' ? params[0] : colMatch[2].replace(/^'|'$/g, '');
         return await postgrestRequest(`${table}?${col}=eq.${encodeURIComponent(val)}`, {
+          method: 'DELETE',
+          headers: { 'Prefer': 'return=representation' }
+        });
+      }
+
+      const isNullMatch = whereClause.match(/([a-zA-Z0-9_]+)\s+IS\s+(NOT\s+)?NULL/i);
+      if (isNullMatch) {
+        const col = isNullMatch[1];
+        const isNot = isNullMatch[2] ? 'not.' : '';
+        return await postgrestRequest(`${table}?${col}=${isNot}is.null`, {
           method: 'DELETE',
           headers: { 'Prefer': 'return=representation' }
         });

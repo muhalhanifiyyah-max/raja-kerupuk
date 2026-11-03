@@ -56,7 +56,8 @@ import {
   Image as ImageIcon,
   ExternalLink,
   Compass,
-  Globe
+  Globe,
+  Menu
 } from 'lucide-react';
 import { captureDropPhoto, getDropLocation, isNativePlatform } from '@/lib/capacitor';
 
@@ -97,6 +98,7 @@ export default function App() {
   const [chartHoverIndex, setChartHoverIndex] = useState(null);
   const [notification, setNotification] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [reportFilterSection, setReportFilterSection] = useState('all');
 
   // Authentication State
@@ -989,7 +991,7 @@ export default function App() {
     csv += "=== I. NERACA SALDO (BALANCE SHEET) ===\r\n";
     csv += "Komponen Akun,Kode Akun,Nominal (IDR)\r\n";
     csv += `Kas & Bank,1001,${metrics.kas}\r\n`;
-    csv += `Piutang Dagang (Warung),1002,${metrics.piutang}\r\n`;
+    csv += `Piutang Dagang (Pedagang),1002,${metrics.piutang}\r\n`;
     csv += `Persediaan Barang Dagang,1003,${metrics.persediaan}\r\n`;
     csv += `Subtotal Aset Lancar,,${totalAsetLancar}\r\n`;
     csv += `Peralatan & Mesin Pabrik,1501,${metrics.peralatan}\r\n`;
@@ -1036,8 +1038,8 @@ export default function App() {
     });
     csv += `Total,Semua Produk,,${totalPersediaanQty},,${totalPersediaanValuasi},,${totalPersediaanPotensiOmset},${totalPersediaanPotensiMargin}\r\n\r\n`;
 
-    csv += "=== V. LAPORAN KONTROL PIUTANG & MITRA WARUNG ===\r\n";
-    csv += "No,Nama Mitra Warung,Telepon,Alamat,Plafon Limit Kredit,Saldo Piutang Berjalan,Sisa Limit,Utilisasi (%),Status Piutang\r\n";
+    csv += "=== V. LAPORAN KONTROL PIUTANG & MITRA PEDAGANG ===\r\n";
+    csv += "No,Nama Mitra Pedagang,Telepon,Alamat,Plafon Limit Kredit,Saldo Piutang Berjalan,Sisa Limit,Utilisasi (%),Status Piutang\r\n";
     pedagangList.forEach((ped, idx) => {
       const limit = Number(ped.limit_piutang) || 0;
       const saldo = Number(ped.saldo_piutang) || 0;
@@ -1045,7 +1047,7 @@ export default function App() {
       const util = limit > 0 ? ((saldo / limit) * 100).toFixed(1) : 0;
       csv += `${idx + 1},"${ped.nama_pedagang}","${ped.no_telepon || ''}","${ped.alamat || ''}",${limit},${saldo},${sisa},${util}%,${ped.status_piutang || 'Lancar'}\r\n`;
     });
-    csv += `Total,Semua Warung,,,${totalLimitPiutang},${totalPiutangNominal},${Math.max(0, totalLimitPiutang - totalPiutangNominal)},${avgUtilisasiPiutang}%\r\n\r\n`;
+    csv += `Total,Semua Pedagang,,,${totalLimitPiutang},${totalPiutangNominal},${Math.max(0, totalLimitPiutang - totalPiutangNominal)},${avgUtilisasiPiutang}%\r\n\r\n`;
 
     csv += "=== VI. ANALISIS RASIO KEUANGAN ===\r\n";
     csv += "Rasio,Nilai,Status Evaluasi\r\n";
@@ -1066,6 +1068,339 @@ export default function App() {
   };
 
   // Loading screen while verifying session
+  // Helper render Sidebar Content (shared between Desktop and Mobile Drawer)
+  const renderSidebarContent = (isMobile = false) => (
+    <div className="flex flex-col justify-between h-full space-y-6">
+      <div className="space-y-6">
+        {/* Logo & Brand Header */}
+        <div className="flex items-center justify-between px-2 pt-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#1a1b24] border border-slate-200/90 dark:border-white/10 p-1 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+              <img src="/logo.png" alt="Raja Kerupuk Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">Raja Kerupuk</h1>
+              <span className="text-[10px] text-slate-400 block -mt-0.5">Sistem Pabrik & POS</span>
+            </div>
+          </div>
+          {isMobile && (
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-500 hover:text-slate-900 dark:text-slate-200 active:scale-95 transition-all"
+              title="Tutup Menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation Menu (Role-based) */}
+        <nav className="space-y-1.5">
+          {currentUser?.role === 'pedagang' ? (
+            <>
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('checkpoint_form');
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
+                  ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+              >
+                <MapPin className="w-4 h-4 text-emerald-400" />
+                <span>Check-Point Drop</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('checkpoint_history');
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
+                  ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+              >
+                <Camera className="w-4 h-4 text-sky-400" />
+                <span>Riwayat Drop Pedagang</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('kartu_piutang');
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
+                  ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+              >
+                <Store className="w-4 h-4 text-amber-400" />
+                <span>Hutang & Setoran</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('katalog');
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
+                  ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                  }`}
+              >
+                <Boxes className="w-4 h-4 text-indigo-400" />
+                <span>Katalog Produk</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {hasMenu('dashboard') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('dashboard');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'dashboard'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </button>
+              )}
+
+              {hasMenu('sales') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('sales');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'sales'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Distribusi & Piutang</span>
+                </button>
+              )}
+
+              {hasMenu('checkpoints') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('checkpoints');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'checkpoints'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                  <span>Check-Point</span>
+                </button>
+              )}
+
+              {hasMenu('inventory') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('inventory');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'inventory'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <Boxes className="w-4 h-4" />
+                  <span>Persediaan Stok</span>
+                </button>
+              )}
+
+              {hasMenu('banking') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('banking');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'banking'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <Landmark className="w-4 h-4" />
+                  <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
+                </button>
+              )}
+
+              {hasMenu('purchases') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('purchases');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Peralatan & Aset</span>
+                </button>
+              )}
+
+              {hasMenu('finance') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('finance');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <Receipt className="w-4 h-4" />
+                  <span>Laporan Keuangan</span>
+                </button>
+              )}
+
+              {hasMenu('reports') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('reports');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'reports'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Cetak Laporan</span>
+                </button>
+              )}
+
+              {hasMenu('factories') && (
+                <button
+                  onClick={() => {
+                    setActiveTab('factories');
+                    setSelectedPabrikId('all');
+                    if (isMobile) setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'factories'
+                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
+                    }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Super Admin Pabrik</span>
+                </button>
+              )}
+            </>
+          )}
+        </nav>
+      </div>
+
+      {/* Bottom Card & Controls */}
+      <div className="space-y-4 pt-4 border-t border-slate-200/70 dark:border-white/10">
+        {/* Quick Action Button */}
+        {currentUser?.role === 'super_admin' ? (
+          <button
+            onClick={() => {
+              setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
+              setActiveModal('tambah_pabrik');
+              if (isMobile) setMobileMenuOpen(false);
+            }}
+            className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+          >
+            <Building2 className="w-3.5 h-3.5 text-white" />
+            <span>Tambah Pabrik Baru</span>
+          </button>
+        ) : currentUser?.role === 'admin_pabrik' ? (
+          <div className="flex flex-col gap-1.5">
+            <button
+              onClick={() => {
+                setPedagangForm({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '5000000', pabrik_id: currentUser?.pabrik_id || '' });
+                setActiveModal('tambah_pedagang');
+                if (isMobile) setMobileMenuOpen(false);
+              }}
+              className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5 text-white" />
+              <span>Tambah Pedagang</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveModal('distribusi');
+                if (isMobile) setMobileMenuOpen(false);
+              }}
+              className="w-full py-2 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-[#1a1b24] dark:hover:bg-[#252836] text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Catat Distribusi</span>
+            </button>
+          </div>
+        ) : null}
+
+        {/* Theme Mode Toggle Pill */}
+        <div className="bg-slate-100 dark:bg-[#1a1b24] dark:border dark:border-white/10 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
+          <button
+            onClick={() => setDarkMode(false)}
+            className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${!darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+              }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            Light
+          </button>
+          <button
+            onClick={() => setDarkMode(true)}
+            className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${darkMode ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+              }`}
+          >
+            <Moon className="w-3.5 h-3.5" />
+            Dark
+          </button>
+        </div>
+
+        {/* User Mini Profile & Logout */}
+        <div className="pt-3 border-t border-slate-200/70 dark:border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
+              <img
+                src="/default-avatar.png"
+                alt={currentUser?.nama || 'User'}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="truncate">
+              <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                {currentUser?.nama}
+              </p>
+              <p className="text-[10px] text-slate-400 truncate">
+                @{currentUser?.username} • {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Pedagang'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Keluar dari sistem"
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all shrink-0 active:scale-95"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#f1f3f6] flex flex-col items-center justify-center p-4">
@@ -1200,307 +1535,55 @@ export default function App() {
         </div>
       )}
 
-      {/* LEFT SIDEBAR */}
-      <aside className={`w-64 p-5 flex flex-col justify-between shrink-0 border-r ${darkMode ? 'bg-[#14151c] border-white/5' : 'bg-white border-slate-200/70'
-        }`}>
-        <div className="space-y-6">
-          {/* Logo & Brand Header */}
-          <div className="flex items-center gap-3 px-2 pt-1">
-            <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#1a1b24] border border-slate-200/90 dark:border-white/10 p-1 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
-              <img src="/logo.png" alt="Raja Kerupuk Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">Raja Kerupuk</h1>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Menu (Role-based) */}
-          <nav className="space-y-1.5">
-            {currentUser?.role === 'pedagang' ? (
-              <>
-                <button
-                  onClick={() => {
-                    setActiveTab('pedagang_portal');
-                    setPedagangSubTab('checkpoint_form');
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <MapPin className="w-4 h-4 text-emerald-400" />
-                  <span>Check-Point Drop</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('pedagang_portal');
-                    setPedagangSubTab('checkpoint_history');
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <Camera className="w-4 h-4 text-sky-400" />
-                  <span>Riwayat Drop Warung</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('pedagang_portal');
-                    setPedagangSubTab('kartu_piutang');
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <Store className="w-4 h-4 text-amber-400" />
-                  <span>Hutang & Setoran</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('pedagang_portal');
-                    setPedagangSubTab('katalog');
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
-                    ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                    }`}
-                >
-                  <Boxes className="w-4 h-4 text-indigo-400" />
-                  <span>Katalog Produk</span>
-                </button>
-              </>
-            ) : (
-              <>
-                {hasMenu('dashboard') && (
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'dashboard'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Dashboard</span>
-                  </button>
-                )}
-
-                {hasMenu('sales') && (
-                  <button
-                    onClick={() => setActiveTab('sales')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'sales'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Distribusi & Piutang</span>
-                  </button>
-                )}
-
-                {hasMenu('checkpoints') && (
-                  <button
-                    onClick={() => setActiveTab('checkpoints')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'checkpoints'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <MapPin className="w-4 h-4 text-emerald-500" />
-                    <span>Check-Point</span>
-                  </button>
-                )}
-
-                {hasMenu('inventory') && (
-                  <button
-                    onClick={() => setActiveTab('inventory')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'inventory'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <Boxes className="w-4 h-4" />
-                    <span>Persediaan Stok</span>
-                  </button>
-                )}
-
-                {hasMenu('banking') && (
-                  <button
-                    onClick={() => setActiveTab('banking')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'banking'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <Landmark className="w-4 h-4" />
-                    <span>{currentUser?.role === 'admin_pabrik' ? 'Kas Operasional' : 'Kas & Perbankan'}</span>
-                  </button>
-                )}
-
-                {/* Menu Peralatan (Super Admin) */}
-                {hasMenu('purchases') && (
-                  <button
-                    onClick={() => setActiveTab('purchases')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'purchases'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Peralatan & Aset</span>
-                  </button>
-                )}
-
-                {/* Menu Laporan Keuangan */}
-                {hasMenu('finance') && (
-                  <button
-                    onClick={() => setActiveTab('finance')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'finance'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <Receipt className="w-4 h-4" />
-                    <span>Laporan Keuangan</span>
-                  </button>
-                )}
-
-                {/* Menu Cetak Laporan */}
-                {hasMenu('reports') && (
-                  <button
-                    onClick={() => setActiveTab('reports')}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'reports'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <Printer className="w-4 h-4" />
-                    <span>Cetak Laporan</span>
-                  </button>
-                )}
-
-                {/* Menu Super Admin Pabrik */}
-                {hasMenu('factories') && (
-                  <button
-                    onClick={() => {
-                      setActiveTab('factories');
-                      setSelectedPabrikId('all');
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${activeTab === 'factories'
-                      ? 'bg-[#191a23] dark:bg-emerald-500 text-white rounded-full shadow-sm font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 rounded-full'
-                      }`}
-                  >
-                    <Building2 className="w-4 h-4" />
-                    <span>Super Admin Pabrik</span>
-                  </button>
-                )}
-              </>
-            )}
-          </nav>
+      {/* MOBILE NAVIGATION DRAWER */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <aside
+            className={`relative w-72 max-w-[85vw] h-full p-5 flex flex-col justify-between z-10 shadow-2xl overflow-y-auto ${
+              darkMode ? 'bg-[#14151c] text-white border-r border-white/10' : 'bg-white text-slate-900 border-r border-slate-200'
+            }`}
+          >
+            {renderSidebarContent(true)}
+          </aside>
         </div>
+      )}
 
-        {/* Bottom Card & Controls */}
-        <div className="space-y-4">
-          {/* Quick Action Button */}
-          {currentUser?.role === 'super_admin' ? (
-            <button
-              onClick={() => {
-                setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
-                setActiveModal('tambah_pabrik');
-              }}
-              className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Building2 className="w-3.5 h-3.5 text-white" />
-              <span>Tambah Pabrik Baru</span>
-            </button>
-          ) : currentUser?.role === 'admin_pabrik' ? (
-            <div className="flex flex-col gap-1.5">
-              <button
-                onClick={() => {
-                  setPedagangForm({ nama_pedagang: '', no_telepon: '', alamat: '', limit_piutang: '5000000', pabrik_id: currentUser?.pabrik_id || '' });
-                  setActiveModal('tambah_pedagang');
-                }}
-                className="w-full py-2.5 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Plus className="w-3.5 h-3.5 text-white" />
-                <span>Tambah Warung</span>
-              </button>
-              <button
-                onClick={() => setActiveModal('distribusi')}
-                className="w-full py-2 px-3 text-xs font-semibold bg-[#191a23] hover:bg-black dark:bg-[#1a1b24] dark:hover:bg-[#252836] text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Catat Distribusi</span>
-              </button>
-            </div>
-          ) : null}
-
-          {/* Theme Mode Toggle Pill */}
-          <div className="bg-slate-100 dark:bg-[#1a1b24] dark:border dark:border-white/10 p-1 rounded-full flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
-            <button
-              onClick={() => setDarkMode(false)}
-              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${!darkMode ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                }`}
-            >
-              <Sun className="w-3.5 h-3.5" />
-              Light
-            </button>
-            <button
-              onClick={() => setDarkMode(true)}
-              className={`flex-1 py-1.5 rounded-full flex items-center justify-center gap-1.5 transition-all ${darkMode ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
-              Dark
-            </button>
-          </div>
-
-          {/* User Mini Profile & Logout */}
-          <div className="pt-3 border-t border-slate-200/70 dark:border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm bg-slate-100 dark:bg-white/5">
-                <img
-                  src="/default-avatar.png"
-                  alt={currentUser?.nama || 'User'}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
-                  {currentUser?.nama}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate">
-                  @{currentUser?.username} • {currentUser?.role === 'super_admin' ? 'Super Admin' : currentUser?.role === 'admin_pabrik' ? 'Admin Pabrik' : 'Warung'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Keluar dari sistem"
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all shrink-0"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {/* DESKTOP LEFT SIDEBAR */}
+      <aside className={`hidden md:flex w-64 p-5 flex-col justify-between shrink-0 border-r ${darkMode ? 'bg-[#14151c] border-white/5' : 'bg-white border-slate-200/70'}`}>
+        {renderSidebarContent(false)}
       </aside>
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
 
         {/* TOP NAVBAR */}
-        <header className={`px-8 py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
+        <header className={`px-3 sm:px-6 md:px-8 py-2.5 sm:py-3.5 md:py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
           }`}>
-          {/* Search Bar & Factory Selector */}
-          <div className="flex items-center gap-4 flex-1 max-w-xl">
-            <div className="relative flex-1">
+          {/* Left section: Hamburger (mobile), Logo (mobile), Search & Factory */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-full md:max-w-xl">
+            {/* Hamburger Button for Mobile */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 md:hidden rounded-xl bg-white dark:bg-[#1a1b24] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-sm active:scale-95 transition-all shrink-0"
+              title="Menu Navigasi"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Mobile Brand Title */}
+            <div className="flex items-center gap-2 md:hidden">
+              <div className="w-7 h-7 rounded-lg bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 p-0.5 flex items-center justify-center shrink-0">
+                <img src="/logo.png" alt="Raja Kerupuk" className="w-full h-full object-contain" />
+              </div>
+              <span className="font-black text-xs text-slate-900 dark:text-white truncate">Raja Kerupuk</span>
+            </div>
+
+            {/* Search Bar - desktop/tablet */}
+            <div className="relative flex-1 hidden md:block">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -1552,7 +1635,7 @@ export default function App() {
           </div>
 
           {/* User Profile & Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {currentUser?.role === 'super_admin' ? (
               <button
                 onClick={() => {
@@ -1617,7 +1700,7 @@ export default function App() {
         </header>
 
         {/* CONTENT BODY */}
-        <main className="p-8 space-y-6 flex-1">
+        <main className="p-3 sm:p-5 md:p-8 space-y-4 md:space-y-6 flex-1 pb-24 md:pb-8">
 
           {/* TAB: DASHBOARD VIEW */}
           {activeTab === 'dashboard' && (
@@ -1628,10 +1711,10 @@ export default function App() {
               )}
 
               {/* TOP 4 KPI CARDS (Matching Shopify POS Layout) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
 
                 {/* 1. Kas & Bank */}
-                <div className="dashboard-card p-5 relative overflow-hidden group">
+                <div className="dashboard-card p-3 sm:p-5 relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600">
@@ -1641,7 +1724,15 @@ export default function App() {
                     </div>
                     {currentUser?.role === 'super_admin' && (
                       <button
-                        onClick={() => setActiveModal('modal_awal')}
+                        onClick={() => {
+                          setModalForm({
+                            nominal: '',
+                            tanggal: new Date().toISOString().slice(0, 10),
+                            keterangan: 'Penyetoran Modal Pemilik',
+                            pabrik_id: selectedPabrikId !== 'all' ? selectedPabrikId : String(factories[0]?.id || 1)
+                          });
+                          setActiveModal('modal_awal');
+                        }}
                         className="text-slate-400 hover:text-slate-700 transition-colors p-1"
                         title="Tambah Modal Kas"
                       >
@@ -1660,14 +1751,14 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 2. Piutang Warung */}
+                {/* 2. Piutang Pedagang */}
                 <div className="dashboard-card p-5 relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-500">
                         <div className="w-2 h-2 rounded-full bg-rose-500" />
                       </div>
-                      <span className="text-xs font-semibold text-slate-500">Piutang Warung</span>
+                      <span className="text-xs font-semibold text-slate-500">Piutang Pedagang</span>
                     </div>
                     <button
                       onClick={() => setActiveModal('setoran')}
@@ -1994,7 +2085,7 @@ export default function App() {
                               <Store className="w-4 h-4" />
                             </div>
                             <div>
-                              <div className="text-xs font-bold text-slate-800 dark:text-white">Mitra Warung Terdaftar</div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white">Mitra Pedagang Terdaftar</div>
                               <div className="text-[11px] text-slate-400">Pabrik {currentUser?.nama_pabrik || 'Depok'}</div>
                             </div>
                           </div>
@@ -2032,12 +2123,12 @@ export default function App() {
 
               </div>
 
-              {/* BOTTOM SECTION: MITRA WARUNG & KONTROL PIUTANG */}
+              {/* BOTTOM SECTION: MITRA PEDAGANG & KONTROL PIUTANG */}
               <div className="dashboard-card p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="font-bold text-base text-slate-900 dark:text-white">Customer Contacts / Mitra Warung</h3>
-                    <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per warung mitra</p>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">Customer Contacts / Mitra Pedagang</h3>
+                    <p className="text-xs text-slate-400">Pengelolaan tagihan piutang dan limit kredit per pedagang</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {['admin_pabrik', 'super_admin'].includes(currentUser?.role) && (
@@ -2049,7 +2140,7 @@ export default function App() {
                         className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all flex items-center gap-1.5 shadow-sm"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        Tambah Warung
+                        Tambah Pedagang
                       </button>
                     )}
                     <button className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center gap-1.5">
@@ -2063,7 +2154,7 @@ export default function App() {
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        <th className="pb-3 pl-2">Nama Warung</th>
+                        <th className="pb-3 pl-2">Nama Pedagang</th>
                         <th className="pb-3">No. Telepon</th>
                         <th className="pb-3">Alamat / Wilayah</th>
                         <th className="pb-3">Sisa Piutang / Limit</th>
@@ -2253,7 +2344,7 @@ export default function App() {
                             </div>
 
                             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                              <span className="font-semibold text-slate-700 dark:text-slate-300">{cp.nama_pedagang || 'Warung'}</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{cp.nama_pedagang || 'Pedagang'}</span>
                               <span className="mx-1">&bull;</span>
                               <span>{cp.tanggal}</span>
                             </div>
@@ -2457,7 +2548,7 @@ export default function App() {
             <div className="space-y-6">
               {renderFactoryFilterBar(
                 'Distribusi & Piutang',
-                'Monitoring drop kerupuk ke warung mitra, saldo piutang, dan omset penjualan',
+                'Monitoring drop kerupuk ke pedagang keliling, saldo piutang, dan omset penjualan',
                 ['admin_pabrik', 'super_admin'].includes(currentUser?.role) ? (
                   <div className="flex items-center gap-2">
                     <button
@@ -2468,14 +2559,14 @@ export default function App() {
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full shadow-sm transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Warung</span>
+                      <span>Tambah Pedagang</span>
                     </button>
                     <button
                       onClick={() => setActiveModal('distribusi')}
                       className="flex items-center gap-1.5 px-4 py-2 bg-[#191a23] dark:bg-white/10 hover:bg-black dark:hover:bg-white/20 text-white text-xs font-semibold rounded-full shadow-sm transition-all"
                     >
                       <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Drop Barang ke Warung</span>
+                      <span>Drop Barang ke Pedagang</span>
                     </button>
                   </div>
                 ) : null
@@ -2969,7 +3060,7 @@ export default function App() {
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-[#191a23] dark:bg-white/10 text-white text-xs font-semibold rounded-full hover:bg-black shadow-sm"
                     >
                       <ArrowDownLeft className="w-3.5 h-3.5" />
-                      <span>Terima Setoran Warung</span>
+                      <span>Terima Setoran Pedagang</span>
                     </button>
                   )}
                 </div>
@@ -3175,7 +3266,7 @@ export default function App() {
                       {formatIDR(alokasiPiutang)}
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Modal yang sedang berputar di warung mitra (barang dititip bon dan menunggu setoran)
+                      Modal yang sedang berputar di mitra pedagang (barang dititip bon dan menunggu setoran)
                     </p>
                   </div>
                 </div>
@@ -3219,7 +3310,7 @@ export default function App() {
                       onClick={() => setKasFilterTipe('SETORAN_PIUTANG')}
                       className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${kasFilterTipe === 'SETORAN_PIUTANG' ? 'bg-white dark:bg-emerald-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                      Setoran Warung
+                      Setoran Pedagang
                     </button>
                   </div>
                 </div>
@@ -3286,7 +3377,7 @@ export default function App() {
                                   {j.tipe_transaksi?.includes('MODAL') ? 'Setoran Modal Pemilik' :
                                    j.tipe_transaksi === 'BELI_PERALATAN' ? 'Beli Mesin / Aset' :
                                    j.tipe_transaksi === 'BELI_PERSEDIAAN' ? 'Belanja Persediaan' :
-                                   j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'Setoran Piutang Warung' :
+                                   j.tipe_transaksi === 'SETORAN_PIUTANG' ? 'Setoran Piutang Pedagang' :
                                    j.tipe_transaksi}
                                 </span>
                               </td>
@@ -3372,7 +3463,7 @@ export default function App() {
                             <span className="font-bold text-slate-900">{formatIDR(metrics.kas)}</span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-slate-50">
-                            <span className="text-slate-600">Piutang Dagang (Warung)</span>
+                            <span className="text-slate-600">Piutang Dagang (Pedagang)</span>
                             <span className="font-bold text-slate-900">{formatIDR(metrics.piutang)}</span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-slate-50">
@@ -3455,7 +3546,7 @@ export default function App() {
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Pendapatan Penjualan</h4>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between py-1 border-b border-slate-50">
-                            <span className="text-slate-600">Penjualan Kerupuk ke Warung</span>
+                            <span className="text-slate-600">Penjualan Kerupuk ke Pedagang</span>
                             <span className="font-bold text-slate-900">{formatIDR(metrics.penjualan)}</span>
                           </div>
                           <div className="flex justify-between py-1.5 font-bold text-slate-900 bg-slate-50 px-2 rounded">
@@ -3652,7 +3743,7 @@ export default function App() {
                     { id: 'laba_rugi', label: '2. Laba Rugi' },
                     { id: 'kas_bank', label: '3. Kas & Perbankan' },
                     { id: 'persediaan', label: '4. Persediaan Barang' },
-                    { id: 'piutang', label: '5. Piutang Warung' },
+                    { id: 'piutang', label: '5. Piutang Pedagang' },
                     { id: 'aset', label: '6. Peralatan & Mesin' },
                     { id: 'analisa', label: '7. Analisa Finansial' }
                   ].map((tab) => (
@@ -3748,7 +3839,7 @@ export default function App() {
                       <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
                         <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Piutang Dagang</span>
                         <span className="text-sm font-bold text-rose-600 dark:text-rose-400 print:text-black block">{formatIDR(metrics.piutang)}</span>
-                        <span className="text-[10px] text-slate-500">{pedagangList.length} Mitra Warung</span>
+                        <span className="text-[10px] text-slate-500">{pedagangList.length} Mitra Pedagang</span>
                       </div>
                       <div className="p-3 bg-slate-50 dark:bg-white/5 print:bg-white rounded-xl border border-slate-200 dark:border-white/10 print:border-slate-300">
                         <span className="text-[10px] text-slate-500 font-semibold block mb-0.5">Persediaan Gudang</span>
@@ -3804,7 +3895,7 @@ export default function App() {
                               <td className="px-4 py-2 text-right font-medium text-slate-900 dark:text-slate-100 print:text-black">{formatIDR(metrics.kas)}</td>
                             </tr>
                             <tr className="border-b border-slate-100 dark:border-white/5">
-                              <td className="px-4 py-2 pl-6 text-slate-700 dark:text-slate-300 print:text-black">1002 - Piutang Dagang (Mitra Warung)</td>
+                              <td className="px-4 py-2 pl-6 text-slate-700 dark:text-slate-300 print:text-black">1002 - Piutang Dagang (Mitra Pedagang)</td>
                               <td className="px-4 py-2 text-right font-medium text-slate-900 dark:text-slate-100 print:text-black">{formatIDR(metrics.piutang)}</td>
                             </tr>
                             <tr className="border-b border-slate-100 dark:border-white/5">
@@ -4230,10 +4321,10 @@ export default function App() {
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
                       <div>
                         <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white print:text-black">
-                          V. Laporan Pengawasan Piutang & Mitra Warung
+                          V. Laporan Pengawasan Piutang & Mitra Pedagang
                         </h3>
                         <p className="text-[11px] text-slate-500 print:text-slate-600">
-                          Monitoring Plafon Kredit, Saldo Tagihan Aktif, dan Status Risiko Pembayaran Warung
+                          Monitoring Plafon Kredit, Saldo Tagihan Aktif, dan Status Risiko Pembayaran Pedagang
                         </p>
                       </div>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/10 px-2.5 py-1 rounded">
@@ -4246,7 +4337,7 @@ export default function App() {
                         <thead>
                           <tr className="bg-slate-100 dark:bg-white/10 print:bg-slate-200 text-slate-800 dark:text-slate-200 print:text-black font-bold uppercase text-[11px]">
                             <th className="px-3 py-2 text-center w-10">No</th>
-                            <th className="px-3 py-2 text-left">Nama Mitra Warung</th>
+                            <th className="px-3 py-2 text-left">Nama Mitra Pedagang</th>
                             <th className="px-3 py-2 text-left">Lokasi / Pasar</th>
                             <th className="px-3 py-2 text-right">Plafon Limit Kredit</th>
                             <th className="px-3 py-2 text-right">Saldo Piutang Berjalan</th>
@@ -4463,7 +4554,7 @@ export default function App() {
                         </div>
                         <div>
                           <h4 className="font-bold text-slate-900 dark:text-white print:text-black text-[11px] uppercase tracking-wide">
-                            2. Manajemen Risiko Kredit Piutang Warung
+                            2. Manajemen Risiko Kredit Piutang Pedagang
                           </h4>
                           <p className="mt-0.5 text-slate-600 dark:text-slate-400 print:text-slate-800">
                             Total piutang dagang tercatat {formatIDR(metrics.piutang)} dengan utilisasi plafon kredit rata-rata {avgUtilisasiPiutang}%. Mayoritas mitra berada pada status Lancar. Disarankan penagihan rutin sebelum plafon kredit mencapai batas maksimal.
@@ -4707,7 +4798,7 @@ export default function App() {
                         </span>
                       </div>
                       <div className="bg-white p-3 rounded-2xl border border-slate-200/70 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Akun Warung</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Akun Pedagang</span>
                         <span className="text-lg font-extrabold text-blue-600">
                           {usersList.filter(u => u.role === 'pedagang').length}
                         </span>
@@ -4786,7 +4877,7 @@ export default function App() {
                                       : 'bg-blue-50 text-blue-700 border border-blue-200'
                                     }`}>
                                     {isSuper && <Shield className="w-3 h-3 text-amber-400" />}
-                                    {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Warung'}
+                                    {isSuper ? 'Super Admin' : isAdminPabrik ? 'Admin Pabrik' : 'Akun Pedagang'}
                                   </span>
                                 </td>
                                 <td className="py-3.5 text-xs text-slate-600">
@@ -4870,7 +4961,7 @@ export default function App() {
                     <span>Monitoring Lapangan</span>
                   </div>
                   <h2 className="text-xl font-black text-white">
-                    Check-Point Drop Kerupuk Warung
+                    Check-Point Drop Kerupuk Pedagang
                   </h2>
                   <p className="text-xs text-slate-300">
                     Pemantauan titik drop kerupuk ke warung, verifikasi foto bukti fisik, dan koordinat GPS.
@@ -5070,7 +5161,7 @@ export default function App() {
                           {/* Detail Drop */}
                           <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 space-y-1.5 text-xs">
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Warung:</span>
+                              <span className="text-slate-400">Pedagang:</span>
                               <span className="font-bold text-slate-800 dark:text-slate-200">
                                 {cp.nama_pedagang}
                               </span>
@@ -5156,7 +5247,7 @@ export default function App() {
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold mb-1">
                     <Store className="w-3 h-3" />
-                    <span>Aplikasi Android Lapangan / Warung</span>
+                    <span>Aplikasi Android Lapangan / Pedagang</span>
                   </div>
                   <h2 className="text-lg font-black text-white">
                     {currentUser?.nama_pedagang || currentUser?.nama}
@@ -5787,6 +5878,228 @@ export default function App() {
           )}
 
         </main>
+
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white/95 dark:bg-[#14151c]/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-white/10 px-2 py-1.5 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+          {currentUser?.role === 'pedagang' ? (
+            <>
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('checkpoint_form');
+                }}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_form' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Drop</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('checkpoint_history');
+                }}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'pedagang_portal' && pedagangSubTab === 'checkpoint_history' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Camera className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Riwayat</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('kartu_piutang');
+                }}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'pedagang_portal' && pedagangSubTab === 'kartu_piutang' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Store className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Piutang</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('pedagang_portal');
+                  setPedagangSubTab('katalog');
+                }}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'pedagang_portal' && pedagangSubTab === 'katalog' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Katalog</span>
+              </button>
+
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all"
+              >
+                <div className="p-1 rounded-lg">
+                  <Menu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Menu</span>
+              </button>
+            </>
+          ) : currentUser?.role === 'admin_pabrik' ? (
+            <>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'dashboard'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'dashboard' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <LayoutDashboard className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('sales')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'sales'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'sales' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Distribusi</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('inventory')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'inventory'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'inventory' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Stok</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('banking')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'banking'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'banking' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Kas</span>
+              </button>
+
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all"
+              >
+                <div className="p-1 rounded-lg">
+                  <Menu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Lainnya</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Super Admin */}
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'dashboard'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'dashboard' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <LayoutDashboard className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Home</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('sales')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'sales'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'sales' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Distribusi</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('banking')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'banking'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'banking' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Kas & Modal</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('finance')}
+                className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  activeTab === 'finance'
+                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'text-slate-400 hover:text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <div className={`p-1 rounded-lg ${activeTab === 'finance' ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''}`}>
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Laporan</span>
+              </button>
+
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-all"
+              >
+                <div className="p-1 rounded-lg">
+                  <Menu className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight">Menu</span>
+              </button>
+            </>
+          )}
+        </nav>
       </div>
 
       {/* ========================================================= */}
@@ -5823,7 +6136,7 @@ export default function App() {
       {/* MODAL 1: SETOR MODAL AWAL */}
       {activeModal === 'modal_awal' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">Penyetoran Modal Pemilik</h3>
@@ -5836,7 +6149,8 @@ export default function App() {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleTransactionSubmit('/api/transaksi/modal', modalForm, 'Penyetoran modal pemilik berhasil dicatat!');
+              const targetPabrik = modalForm.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : String(factories[0]?.id || 1));
+              handleTransactionSubmit('/api/transaksi/modal', { ...modalForm, pabrik_id: targetPabrik }, 'Penyetoran modal pemilik berhasil dicatat!');
             }} className="space-y-4">
               {/* Pilihan Pabrik Penerima Modal */}
               <div>
@@ -5924,7 +6238,7 @@ export default function App() {
       {/* MODAL 2: BELI PERALATAN (ASET TETAP) */}
       {activeModal === 'beli_peralatan' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">Pembelian Peralatan / Mesin</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -5996,7 +6310,7 @@ export default function App() {
       {/* MODAL 3: BELI PERSEDIAAN */}
       {activeModal === 'beli_persediaan' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">Belanja Persediaan</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -6081,7 +6395,7 @@ export default function App() {
       {/* MODAL 4: DISTRIBUSI BARANG KE PEDAGANG (PIUTANG) */}
       {activeModal === 'distribusi' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">Distribusi Barang</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -6094,14 +6408,14 @@ export default function App() {
               handleTransactionSubmit('/api/transaksi/distribusi', distribusiForm, 'Distribusi barang berhasil dicatat!');
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Warung Penerima</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Pedagang Penerima</label>
                 <select
                   required
                   value={distribusiForm.pedagang_id}
                   onChange={(e) => setDistribusiForm({ ...distribusiForm, pedagang_id: e.target.value })}
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
                 >
-                  <option value="">-- Pilih Warung --</option>
+                  <option value="">-- Pilih Pedagang --</option>
                   {(dashboardData?.pedagangList || []).map((ped) => (
                     <option key={ped.id} value={String(ped.id)}>
                       {ped.nama_pedagang} (Piutang: {formatShort(ped.saldo_piutang)} / Limit: {formatShort(ped.limit_piutang)})
@@ -6189,7 +6503,7 @@ export default function App() {
       {/* MODAL 5: SETORAN PEMBAYARAN PEDAGANG */}
       {activeModal === 'setoran' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">Penerimaan Setoran</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -6199,17 +6513,17 @@ export default function App() {
 
             <form onSubmit={(e) => {
               e.preventDefault();
-              handleTransactionSubmit('/api/transaksi/setoran', setoranForm, 'Penerimaan setoran warung berhasil dicatat!');
+              handleTransactionSubmit('/api/transaksi/setoran', setoranForm, 'Penerimaan setoran pedagang berhasil dicatat!');
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Warung</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Pedagang</label>
                 <select
                   required
                   value={setoranForm.pedagang_id}
                   onChange={(e) => setSetoranForm({ ...setoranForm, pedagang_id: e.target.value })}
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none"
                 >
-                  <option value="">-- Pilih Warung --</option>
+                  <option value="">-- Pilih Pedagang --</option>
                   {(dashboardData?.pedagangList || []).map((ped) => (
                     <option key={ped.id} value={String(ped.id)}>
                       {ped.nama_pedagang} (Sisa Utang: {formatIDR(ped.saldo_piutang)})
@@ -6261,14 +6575,14 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 6: TAMBAH WARUNG BARU */}
+      {/* MODAL 6: TAMBAH PEDAGANG BARU */}
       {activeModal === 'tambah_pedagang' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Tambah Warung Baru</h3>
-                <p className="text-xs text-slate-400">Pendaftaran mitra warung untuk drop kerupuk dan kontrol piutang</p>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Tambah Pedagang Baru</h3>
+                <p className="text-xs text-slate-400">Pendaftaran mitra pedagang keliling untuk distribusi dan kontrol piutang</p>
               </div>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="w-5 h-5" />
@@ -6280,7 +6594,7 @@ export default function App() {
               const targetPabrikId = currentUser?.role === 'admin_pabrik'
                 ? (currentUser.pabrik_id || 1)
                 : (pedagangForm.pabrik_id || (selectedPabrikId !== 'all' ? selectedPabrikId : (factories[0]?.id || 1)));
-              handleTransactionSubmit('/api/pedagang', { ...pedagangForm, pabrik_id: targetPabrikId }, 'Warung baru berhasil ditambahkan!');
+              handleTransactionSubmit('/api/pedagang', { ...pedagangForm, pabrik_id: targetPabrikId }, 'Pedagang baru berhasil ditambahkan!');
             }} className="space-y-4">
               {currentUser?.role === 'super_admin' && factories.length > 0 && (
                 <div>
@@ -6307,11 +6621,11 @@ export default function App() {
               )}
 
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Warung / Kios</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Lengkap Pedagang</label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Warung Bu Sri / Toko Berkah"
+                  placeholder="Pak Joko / Bu Sri"
                   value={pedagangForm.nama_pedagang}
                   onChange={(e) => setPedagangForm({ ...pedagangForm, nama_pedagang: e.target.value })}
                   className="w-full px-3 py-2 border dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-white rounded-xl text-sm focus:outline-none"
@@ -6330,7 +6644,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Alamat / Lokasi Warung</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Alamat / Wilayah Operasi</label>
                 <input
                   type="text"
                   placeholder="Pasar Waru Blok B / Jl. Margonda No. 45"
@@ -6363,7 +6677,7 @@ export default function App() {
                   type="submit"
                   className="flex-1 py-2.5 text-xs font-semibold bg-[#191a23] dark:bg-emerald-600 text-white rounded-xl hover:bg-black dark:hover:bg-emerald-500 shadow-sm transition-all"
                 >
-                  Simpan Warung
+                  Simpan Pedagang
                 </button>
               </div>
             </form>
@@ -6374,7 +6688,7 @@ export default function App() {
       {/* MODAL 7: TAMBAH PRODUK BARU */}
       {activeModal === 'tambah_produk' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">Tambah Produk Baru</h3>
@@ -6470,7 +6784,7 @@ export default function App() {
       {/* MODAL EDIT PRODUK & STOK GUDANG */}
       {activeModal === 'edit_produk' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">Edit Produk & Stok Gudang</h3>
@@ -6580,7 +6894,7 @@ export default function App() {
       {/* MODAL KONFIRMASI HAPUS PRODUK */}
       {activeModal === 'delete_produk_confirm' && selectedProdukToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-white/10 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -6618,7 +6932,7 @@ export default function App() {
       {/* MODAL 8: TAMBAH PABRIK BARU (SUPER ADMIN) */}
       {activeModal === 'tambah_pabrik' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-slate-900">Tambah Entitas Pabrik Baru</h3>
@@ -6715,12 +7029,12 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 9: DETAIL KARTU PIUTANG WARUNG */}
+      {/* MODAL 9: DETAIL KARTU PIUTANG PEDAGANG */}
       {activeModal === 'kartu_piutang' && selectedPedagang && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1a1b24] rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#1a1b24] rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-100 dark:border-white/10 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b dark:border-white/10 pb-3">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Kartu Piutang Warung: {selectedPedagang.nama_pedagang}</h3>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Kartu Piutang Pedagang: {selectedPedagang.nama_pedagang}</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -6789,7 +7103,7 @@ export default function App() {
       {/* MODAL 10: EDIT PABRIK (SUPER ADMIN) */}
       {activeModal === 'edit_pabrik' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">Edit Pabrik</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -6863,7 +7177,7 @@ export default function App() {
       {/* MODAL 11: KONFIRMASI HAPUS PABRIK (SUPER ADMIN) */}
       {activeModal === 'delete_pabrik_confirm' && selectedPabrikToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-rose-100 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>
@@ -6900,7 +7214,7 @@ export default function App() {
       {/* MODAL 12: TAMBAH / EDIT USER (SUPER ADMIN) */}
       {(activeModal === 'tambah_user' || activeModal === 'edit_user') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg text-slate-900">{activeModal === 'edit_user' ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}</h3>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600">
@@ -6970,7 +7284,7 @@ export default function App() {
                   >
                     <option value="super_admin">Super Admin (Owner)</option>
                     <option value="admin_pabrik">Admin Pabrik</option>
-                    <option value="pedagang">Akun Warung</option>
+                    <option value="pedagang">Akun Pedagang</option>
                   </select>
                 </div>
                 <div>
@@ -7027,7 +7341,7 @@ export default function App() {
       {/* MODAL 13: KONFIRMASI HAPUS USER (SUPER ADMIN) */}
       {activeModal === 'delete_user_confirm' && selectedUserToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-rose-100 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -7064,7 +7378,7 @@ export default function App() {
       {/* MODAL 14: EDIT TRANSAKSI / PEMBUKUAN */}
       {activeModal === 'edit_transaksi' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-lg text-slate-900">Edit Transaksi</h3>
@@ -7142,7 +7456,7 @@ export default function App() {
       {/* MODAL 15: KONFIRMASI HAPUS TRANSAKSI */}
       {activeModal === 'delete_transaksi_confirm' && selectedTransactionToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-rose-100 space-y-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto border border-rose-100 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>

@@ -3,7 +3,7 @@ const { query, queryOne, queryAll, postgrestRequest } = require('./supabase');
 // Standard Chart of Accounts (COA) Template
 const DEFAULT_COA = [
   { kode: '1001', nama: 'Kas & Bank', tipe: 'aset_lancar', normal: 'debit' },
-  { kode: '1002', nama: 'Piutang Dagang (Warung)', tipe: 'aset_lancar', normal: 'debit' },
+  { kode: '1002', nama: 'Piutang Dagang (Pedagang)', tipe: 'aset_lancar', normal: 'debit' },
   { kode: '1003', nama: 'Persediaan Barang Dagang (Kerupuk)', tipe: 'aset_lancar', normal: 'debit' },
   { kode: '1501', nama: 'Peralatan & Mesin Pabrik', tipe: 'aset_tetap', normal: 'debit' },
   { kode: '2001', nama: 'Utang Usaha', tipe: 'kewajiban', normal: 'kredit' },
@@ -286,7 +286,7 @@ async function distribusiBarang(pabrikId, { pedagangId, produkId, qty, hargaJual
 
   if (limitPiutang > 0 && proyeksiPiutang > limitPiutang) {
     const sisaLimit = limitPiutang - saldoPiutangSaatIni;
-    throw new Error(`Melebihi Limit Piutang! Warung ${pedagang.nama_pedagang} memiliki limit Rp ${limitPiutang.toLocaleString('id-ID')}, saldo piutang saat ini Rp ${saldoPiutangSaatIni.toLocaleString('id-ID')}. Sisa limit Rp ${Math.max(0, sisaLimit).toLocaleString('id-ID')}, transaksi ini: Rp ${totalJual.toLocaleString('id-ID')}.`);
+    throw new Error(`Melebihi Limit Piutang! Pedagang ${pedagang.nama_pedagang} memiliki limit Rp ${limitPiutang.toLocaleString('id-ID')}, saldo piutang saat ini Rp ${saldoPiutangSaatIni.toLocaleString('id-ID')}. Sisa limit Rp ${Math.max(0, sisaLimit).toLocaleString('id-ID')}, transaksi ini: Rp ${totalJual.toLocaleString('id-ID')}.`);
   }
 
   tanggal = tanggal || new Date().toISOString().slice(0, 10);
@@ -900,7 +900,7 @@ async function getJurnalUmum(pabrikId, { limit = 100, startDate, endDate } = {})
 // 4. Kartu Piutang Pedagang
 async function getKartuPiutangPedagang(pabrikId, pedagangId) {
   const pedagang = await queryOne(`SELECT * FROM tabel_pedagang WHERE id = ? AND pabrik_id = ?`, [pedagangId, pabrikId]);
-  if (!pedagang) throw new Error('Warung tidak ditemukan');
+  if (!pedagang) throw new Error('Pedagang tidak ditemukan');
 
   const distribusiList = await queryAll(`
     SELECT 
