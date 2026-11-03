@@ -21,14 +21,18 @@ function generateNomorBukti(pabrikId, prefix) {
 }
 
 async function initFactoryCOA(pabrikId) {
-  const valueRows = DEFAULT_COA.map(item => 
+  const existingAccounts = await queryAll(`SELECT kode_akun FROM tabel_akun_perkiraan WHERE pabrik_id = ?`, [pabrikId]);
+  const existingCodes = new Set(existingAccounts.map(a => a.kode_akun));
+  const missing = DEFAULT_COA.filter(item => !existingCodes.has(item.kode));
+  if (missing.length === 0) return;
+
+  const valueRows = missing.map(item => 
     `(${pabrikId}, '${item.kode}', '${item.nama.replace(/'/g, "''")}', '${item.tipe}', '${item.normal}')`
   ).join(', ');
   
   await query(`
     INSERT INTO tabel_akun_perkiraan (pabrik_id, kode_akun, nama_akun, tipe_akun, saldo_normal)
     VALUES ${valueRows}
-    ON CONFLICT (pabrik_id, kode_akun) DO NOTHING
   `);
 }
 

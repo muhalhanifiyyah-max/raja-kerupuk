@@ -264,7 +264,18 @@ async function fallbackPostgrest(sql, params = []) {
 
       if (colsMatch && valuesIdx !== -1) {
         const cols = colsMatch[1].split(',').map(c => c.trim().replace(/["'`]/g, ''));
-        const valuesSub = trimmed.slice(valuesIdx);
+        let valuesSub = trimmed.slice(valuesIdx);
+        
+        // Strip ON CONFLICT and RETURNING from VALUES part
+        const onConflictMatch = valuesSub.search(/\s+ON\s+CONFLICT/i);
+        if (onConflictMatch !== -1) {
+          valuesSub = valuesSub.slice(0, onConflictMatch);
+        }
+        const returningMatch = valuesSub.search(/\s+RETURNING/i);
+        if (returningMatch !== -1) {
+          valuesSub = valuesSub.slice(0, returningMatch);
+        }
+
         const startParen = valuesSub.indexOf('(');
         const rest = valuesSub.slice(startParen);
 
@@ -343,9 +354,13 @@ async function fallbackPostgrest(sql, params = []) {
 
         if (rowsToInsert.length > 0) {
           const payload = rowsToInsert.length === 1 ? rowsToInsert[0] : rowsToInsert;
+          const prefHeaders = { 'Prefer': 'return=representation' };
+          if (upper.includes('ON CONFLICT')) {
+            prefHeaders['Prefer'] = 'resolution=ignore-duplicates, return=representation';
+          }
           return await postgrestRequest(table, {
             method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
+            headers: prefHeaders,
             body: JSON.stringify(payload)
           });
         }
