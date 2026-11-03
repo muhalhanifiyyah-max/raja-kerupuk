@@ -1561,88 +1561,88 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
 
         {/* TOP NAVBAR */}
-        <header className={`px-3 sm:px-6 md:px-8 py-2.5 sm:py-3.5 md:py-4 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
+        <header className={`px-3 md:px-8 py-2 md:py-3.5 flex items-center justify-between border-b sticky top-0 z-20 backdrop-blur-md ${darkMode ? 'bg-[#0f1015]/90 border-white/5' : 'bg-[#f1f3f6]/90 border-slate-200/60'
           }`}>
-          {/* Left section: Hamburger (mobile), Logo (mobile), Search & Factory */}
-          <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-full md:max-w-xl">
+          {/* Left section: Hamburger (mobile), Logo + Brand */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Hamburger Button for Mobile */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 md:hidden rounded-xl bg-white dark:bg-[#1a1b24] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-sm active:scale-95 transition-all shrink-0"
+              className="p-1.5 md:hidden rounded-xl bg-white dark:bg-[#1a1b24] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 shadow-sm active:scale-95 transition-all shrink-0"
               title="Menu Navigasi"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Mobile Brand Title */}
-            <div className="flex items-center gap-2 md:hidden">
-              <div className="w-7 h-7 rounded-lg bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 p-0.5 flex items-center justify-center shrink-0">
+            {/* Logo and Brand */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 p-0.5 sm:p-1 flex items-center justify-center shrink-0 shadow-sm">
                 <img src="/logo.png" alt="Raja Kerupuk" className="w-full h-full object-contain" />
               </div>
-              <span className="font-black text-xs text-slate-900 dark:text-white truncate">Raja Kerupuk</span>
+              <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white tracking-tight">Raja Kerupuk</span>
             </div>
+          </div>
 
-            {/* Search Bar - desktop/tablet */}
-            <div className="relative flex-1 hidden md:block">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari transaksi, pedagang, jurnal... (⌘ + Space)"
-                className={`w-full pl-10 pr-24 py-2 text-sm rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${darkMode
-                  ? 'bg-[#1a1b24] border-white/10 text-white placeholder-slate-500'
-                  : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-sm'
-                  }`}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 rounded text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                <span>⌘</span>
-                <span>Space</span>
-              </div>
+          {/* Center section: Search Bar (Desktop only) */}
+          <div className="relative flex-1 max-w-md mx-4 hidden lg:block">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari transaksi, pedagang, jurnal... (⌘ + Space)"
+              className={`w-full pl-10 pr-24 py-2 text-sm rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${darkMode
+                ? 'bg-[#1a1b24] border-white/10 text-white placeholder-slate-500'
+                : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-sm'
+                }`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 rounded text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+              <span>⌘</span>
+              <span>Space</span>
             </div>
+          </div>
 
-            {/* Multi-Tenant Switcher (Scoped by Role) */}
+          {/* Right section: Factory Selector + User Profile & Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Multi-Tenant Switcher / Badge */}
             {currentUser?.role === 'super_admin' ? (
               <div className="relative">
                 <select
                   value={selectedPabrikId}
                   onChange={(e) => setSelectedPabrikId(e.target.value)}
-                  className={`pl-9 pr-9 py-2 text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${selectedPabrikId === 'all'
+                  className={`pl-6 pr-5 sm:pl-9 sm:pr-9 py-1 sm:py-2 text-[11px] sm:text-sm font-semibold rounded-full border appearance-none cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 max-w-[95px] sm:max-w-none truncate ${selectedPabrikId === 'all'
                     ? 'bg-[#191a23] dark:bg-emerald-600 text-white border-slate-700 dark:border-emerald-500'
                     : 'bg-white dark:bg-[#1a1b24] text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10'
                     }`}
                 >
-                  <option value="all">Semua Pabrik</option>
+                  <option value="all">Semua</option>
                   {factories.map((f) => (
                     <option key={f.id} value={String(f.id)}>
                       {f.nama_pabrik}
                     </option>
                   ))}
                 </select>
-                <Factory className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${selectedPabrikId === 'all' ? 'text-emerald-400' : 'text-slate-500 dark:text-slate-400'
-                  }`} />
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Factory className="w-3 h-3 sm:w-4 sm:h-4 absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-400" />
+                <ChevronDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-slate-400 absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             ) : currentUser?.role === 'admin_pabrik' ? (
-              <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 rounded-full text-xs font-bold shadow-sm">
-                <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Pabrik: {currentUser.nama_pabrik || currentFactory?.nama_pabrik}</span>
+              <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 rounded-full text-[10px] sm:text-xs font-bold shadow-sm max-w-[95px] sm:max-w-none truncate shrink-0">
+                <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="truncate">{currentUser.nama_pabrik || currentFactory?.nama_pabrik || 'Pabrik'}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 rounded-full text-xs font-bold shadow-sm">
-                <Store className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>Mitra: {currentUser?.nama_pedagang || currentUser?.nama}</span>
+              <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 rounded-full text-[10px] sm:text-xs font-bold shadow-sm max-w-[95px] sm:max-w-none truncate shrink-0">
+                <Store className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="truncate">{currentUser?.nama_pedagang || currentUser?.nama || 'Mitra'}</span>
               </div>
             )}
-          </div>
 
-          {/* User Profile & Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Quick Action Button - Desktop only */}
             {currentUser?.role === 'super_admin' ? (
               <button
                 onClick={() => {
                   setPabrikForm({ nama_pabrik: '', alamat: '', telepon: '', penanggung_jawab: '', modal_awal: '100000000' });
                   setActiveModal('tambah_pabrik');
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95"
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full transition-all shadow-sm active:scale-95"
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Tambah Pabrik</span>
@@ -1650,29 +1650,29 @@ export default function App() {
             ) : currentUser?.role === 'admin_pabrik' ? (
               <button
                 onClick={() => setActiveModal('distribusi')}
-                className="flex items-center gap-2 px-4 py-2 bg-[#191a23] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm active:scale-95"
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#191a23] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-semibold rounded-full hover:bg-black transition-all shadow-sm active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Transaksi Baru</span>
               </button>
             ) : null}
 
-            {/* Notification bell */}
-            <button className="w-9 h-9 rounded-full bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-sm relative">
+            {/* Notification bell - Desktop only */}
+            <button className="hidden md:flex w-9 h-9 rounded-full bg-white dark:bg-[#1a1b24] border border-slate-200 dark:border-white/10 items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-sm relative shrink-0">
               <Bell className="w-4 h-4" />
               <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-2 ring-white dark:ring-[#14151c]" />
             </button>
 
             {/* User Avatar & Identity */}
-            <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-white/10">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm ring-2 ring-white dark:ring-[#14151c] bg-slate-100 dark:bg-white/5">
+            <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 sm:border-l sm:border-slate-200 sm:dark:border-white/10 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-sm ring-1 sm:ring-2 ring-white dark:ring-[#14151c] bg-slate-100 dark:bg-white/5">
                 <img
                   src="/default-avatar.png"
                   alt={currentUser?.nama || 'User'}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="hidden md:block">
+              <div className="hidden lg:block">
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">
                     {currentUser?.nama}
@@ -1690,10 +1690,10 @@ export default function App() {
               <button
                 onClick={handleLogout}
                 title="Keluar dari sistem"
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-full hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all active:scale-95 shadow-sm ml-1"
+                className="p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all active:scale-95 shadow-sm"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Keluar</span>
+                <span className="hidden sm:inline ml-1">Keluar</span>
               </button>
             </div>
           </div>
