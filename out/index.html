@@ -892,6 +892,18 @@
       <button type="button" onclick="saveServerSettings()" class="btn-submit" style="padding: 12px;">
         Simpan & Uji Koneksi Database
       </button>
+
+      <!-- Kelola Data & Reset Cache -->
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+        <label class="form-label" style="color: var(--rose);">Kelola Data & Cache Aplikasi</label>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+          Bersihkan data sesi login, cache lokal, dan riwayat memori dari aplikasi Android.
+        </p>
+        <button type="button" onclick="clearAppDataAndSession()" style="width: 100%; padding: 10px; border-radius: 12px; background: rgba(255,69,58,0.12); border: 1px solid rgba(255,69,58,0.3); color: var(--rose); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Hapus Cache & Reset Sesi Aplikasi</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1697,6 +1709,21 @@
       }
     }
 
+    function clearAppDataAndSession() {
+      if (!confirm('Hapus seluruh data cache, sesi login, dan riwayat memori dari aplikasi? Anda akan dialihkan ke layar masuk.')) return;
+      try {
+        localStorage.clear();
+        state.currentUser = null;
+        state.checkpoints = [];
+        state.products = [];
+        closeSettings();
+        showToast('Data cache dan sesi berhasil dibersihkan.');
+        showLoginScreen();
+      } catch (err) {
+        showToast('Gagal bersihkan data: ' + err.message);
+      }
+    }
+
     // Helper Fetch dengan Timeout agar tidak menggantung tanpa respon
     async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
       const controller = new AbortController();
@@ -1946,14 +1973,56 @@
                 ${item.metode_bayar === 'tunai' ? 'Tunai' : 'Bon / Piutang'}
               </span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-              ${item.latitude && item.longitude ? `<a href="https://www.google.com/maps?q=${item.latitude},${item.longitude}" target="_blank" style="font-size: 10px; color: var(--primary); text-decoration: underline; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> GPS Peta</a>` : ''}
-              ${photoSrc ? `<button type="button" onclick="openPhotoModal('${photoSrc}', '${warungName.replace(/'/g, "\\'")}')" style="background: none; border: none; font-size: 10px; color: #38bdf8; font-weight: 700; cursor: pointer; padding: 0;">Lihat Foto</button>` : '<span style="font-size: 10px; color: var(--text-muted);">Tanpa Foto</span>'}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                ${item.latitude && item.longitude ? `<a href="https://www.google.com/maps?q=${item.latitude},${item.longitude}" target="_blank" style="font-size: 10px; color: var(--primary); text-decoration: underline; display: inline-flex; align-items: center; gap: 3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> GPS Peta</a>` : ''}
+                ${photoSrc ? `<button type="button" onclick="openPhotoModal('${photoSrc}', '${warungName.replace(/'/g, "\\'")}')" style="background: none; border: none; font-size: 10px; color: #38bdf8; font-weight: 700; cursor: pointer; padding: 0;">Lihat Foto</button>` : '<span style="font-size: 10px; color: var(--text-muted);">Tanpa Foto</span>'}
+              </div>
+              <button type="button" onclick="deleteDropRecord(${item.id})" style="background: none; border: none; font-size: 10px; color: var(--rose); font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 6px;">Hapus</button>
             </div>
           </div>
         </div>
       `;
       }).join('');
+    }
+
+    async function deleteDropRecord(distId) {
+      if (!confirm('Apakah Anda yakin ingin menghapus data drop ini dari database?')) return;
+      try {
+        showToast('Menghapus data drop...');
+        const base = getApiBaseUrl();
+        const isSupabase = base === 'supabase' || !base.startsWith('http');
+        if (isSupabase) {
+          const rows = await supabaseRequest(`tabel_transaksi_distribusi?id=eq.${distId}`);
+          if (rows && rows.length > 0) {
+            const r = rows[0];
+            if (r.produk_id && r.qty) {
+              try {
+                const prods = await supabaseRequest(`tabel_produk?id=eq.${r.produk_id}`);
+                if (prods && prods[0]) {
+                  await supabaseRequest(`tabel_produk?id=eq.${r.produk_id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ stok: (Number(prods[0].stok) || 0) + Number(r.qty) })
+                  });
+                }
+              } catch (e) {}
+            }
+            if (r.jurnal_id) {
+              try {
+                await supabaseRequest(`tabel_jurnal_detail?jurnal_id=eq.${r.jurnal_id}`, { method: 'DELETE' });
+                await supabaseRequest(`tabel_jurnal_transaksi?id=eq.${r.jurnal_id}`, { method: 'DELETE' });
+              } catch (e) {}
+            }
+            await supabaseRequest(`tabel_transaksi_distribusi?id=eq.${distId}`, { method: 'DELETE' });
+          }
+        } else {
+          await fetchWithTimeout(`${base}/api/transaksi/${distId}`, { method: 'DELETE' }, 8000);
+        }
+        showToast('Data drop berhasil dihapus!');
+        await loadDatabaseData();
+      } catch (err) {
+        showToast('Gagal hapus data: ' + err.message);
+      }
     }
 
     // SUBMIT CHECKPOINT TO DATABASE

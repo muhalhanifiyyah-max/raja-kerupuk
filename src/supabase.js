@@ -439,11 +439,22 @@ async function fallbackPostgrest(sql, params = []) {
     if (tableMatch) {
       const table = tableMatch[1].trim();
       const whereClause = tableMatch[2].trim().replace(/;$/, '');
-      const idMatch = whereClause.match(/id\s*=\s*(\d+|\?)/i);
-      const targetId = idMatch ? (idMatch[1] === '?' ? params[0] : idMatch[1]) : null;
 
-      if (targetId) {
-        return await postgrestRequest(`${table}?id=eq.${targetId}`, {
+      const colMatch = whereClause.match(/([a-zA-Z0-9_]+)\s*=\s*(\d+|\?|'[^']*')/i);
+      if (colMatch) {
+        const col = colMatch[1];
+        let val = colMatch[2] === '?' ? params[0] : colMatch[2].replace(/^'|'$/g, '');
+        return await postgrestRequest(`${table}?${col}=eq.${encodeURIComponent(val)}`, {
+          method: 'DELETE',
+          headers: { 'Prefer': 'return=representation' }
+        });
+      }
+
+      const inMatch = whereClause.match(/([a-zA-Z0-9_]+)\s+IN\s*\(([^)]+)\)/i);
+      if (inMatch) {
+        const col = inMatch[1];
+        const rawVals = inMatch[2].split(',').map(v => v.trim().replace(/^'|'$/g, ''));
+        return await postgrestRequest(`${table}?${col}=in.(${rawVals.join(',')})`, {
           method: 'DELETE',
           headers: { 'Prefer': 'return=representation' }
         });
